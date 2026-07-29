@@ -27,10 +27,10 @@ function toStockRow(id: number, data: AddProductFormData, existing?: StockRow): 
 
 /** CRUD genérico de inventario. El feature inyecta el loader de datos. */
 export function useInventoryCrud(loadInitial: () => StockRow[]) {
-  const [rows, setRows] = useState<StockRow[]>(() => [...loadInitial()]);
+  const [rows, setRows] = useState<StockRow[]>(() => []);
   const [nextId, setNextId] = useState(() => {
     const initial = loadInitial();
-    return initial.reduce((max, row) => Math.max(max, row.id), 0) + 1;
+    return initial.length + 1;
   });
 
   const add = useCallback(

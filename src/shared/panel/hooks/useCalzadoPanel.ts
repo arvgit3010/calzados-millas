@@ -1,7 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { AddProductFormData, StockRow } from "../types";
+import {
+  getBotinesInventory,
+  searchBotinesInventory,
+} from "@/features/gestion-botines/services/botines.service";
+import { getApiErrorMessage, ROUTES } from "@/core";
+import type { GetAllBotinesInventoryResponse, ModelSeachParams } from "@/features/gestion-botines/models/botinesInventory.model";
 
-type UseCalzadoPanelArgs = {
+export type UseCalzadoPanelArgs = {
   rows: StockRow[];
   inventoryTitle: string;
   onAddProduct?: (data: AddProductFormData) => void;
@@ -9,45 +16,83 @@ type UseCalzadoPanelArgs = {
   onDeleteProduct?: (id: number) => void;
 };
 
+function toStockRow(product: GetAllBotinesInventoryResponse): StockRow {
+  const talla = Number(product.descripcionTalla) || 0;
+  return {
+    id: product.id_producto,
+    model: product.nombreModelo,
+    color: product.descripcionColor,
+    size1: { size: talla, qty: product.stock_actual },
+    size2: { size: 0, qty: 0 },
+    size3: { size: 0, qty: 0 },
+    totalPairs: product.stock_actual,
+    season: "",
+    status: "Activo",
+    image: product.imagen ?? undefined,
+  };
+}
+
 export function useCalzadoPanel({
-  rows,
   inventoryTitle,
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
 }: UseCalzadoPanelArgs) {
+  const navigate = useNavigate();
   const canMutate = !!onAddProduct;
-  const allRows = rows;
 
-  const [selectedRow, setSelectedRow] = useState<StockRow | null>(null);
-  const [modalMode, setModalMode] = useState<{ mode: "add" } | { mode: "edit"; row: StockRow } | null>(
-    null,
-  );
+  const [products, setProducts] = useState<GetAllBotinesInventoryResponse[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRow, setSelectedRow] = useState<GetAllBotinesInventoryResponse | null>(null);
+  const [modalMode, setModalMode] = useState<
+    { mode: "add" } | { mode: "edit"; row: StockRow } | null
+  >(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [seasonFilter, setSeasonFilter] = useState<string | null>(null);
-  const [lowStockFilter, setLowStockFilter] = useState(false);
 
-  const totalPairs = allRows.reduce((sum, row) => sum + row.totalPairs, 0);
-  const lowStock = allRows.filter((row) =>
-    [row.size1.qty, row.size2.qty, row.size3.qty].some((qty) => qty <= 2),
-  ).length;
-  const needsBuy = allRows.filter((row) =>
-    [row.size1.qty, row.size2.qty, row.size3.qty].some((qty) => qty <= 1),
-  ).length;
-  const inventoryValue = allRows.reduce((sum, row) => sum + row.totalPairs * 100.44, 0);
+  useEffect(() => {
+    let cancelled = false;
 
-  const filteredRows = useMemo(() => {
-    let result = allRows;
-    if (seasonFilter) {
-      result = result.filter((row) => row.season === seasonFilter);
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await getBotinesInventory();
+        if (cancelled) return;
+        setProducts(data);
+      } catch (error) {
+        if (!cancelled) console.error(getApiErrorMessage(error));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSearchChange = async (value: string) => {
+    const term = value;
+     const searchParams: ModelSeachParams = {
+      codigo: term,
+      modelo: term,
+      talla: term,
+      sku: term,
+     };
+    setSearchTerm(term);
+
+   
+    setLoading(true);
+    try {
+      const data = Object.values(searchParams).some(value => value !== '') ? await searchBotinesInventory(searchParams) : await getBotinesInventory();
+      setProducts(data);
+    } catch (error) {
+
+      console.error(getApiErrorMessage(error));
+    } finally {
+      setLoading(false);
     }
-    if (lowStockFilter) {
-      result = result.filter((row) =>
-        [row.size1.qty, row.size2.qty, row.size3.qty].some((q) => q <= 2),
-      );
-    }
-    return result;
-  }, [allRows, seasonFilter, lowStockFilter]);
+  };
 
   const handleAddSubmit = (data: AddProductFormData) => {
     if (modalMode?.mode === "edit" && onEditProduct) {
@@ -61,32 +106,34 @@ export function useCalzadoPanel({
   const handleDeleteConfirm = (id: number) => {
     onDeleteProduct?.(id);
     setDeletingId(null);
+    setProducts((prev) => prev.filter((p) => p.id_producto !== id));
   };
 
-  const toggleSeasonFilter = () => {
-    setSeasonFilter(seasonFilter === null ? (allRows[0]?.season ?? null) : null);
+  const handleEditProduct = (product: GetAllBotinesInventoryResponse) => {
+    setModalMode({ mode: "edit", row: toStockRow(product) });
+  };
+
+  const handleVender = (product: GetAllBotinesInventoryResponse) => {
+    navigate(ROUTES.gestionVentas, { state: { product } });
   };
 
   return {
     displayTitle: inventoryTitle,
     canMutate,
-    filteredRows,
+    products,
+    loading,
+    searchTerm,
     selectedRow,
     deletingId,
     modalMode,
-    seasonFilter,
-    lowStockFilter,
-    totalPairs,
-    inventoryValue,
-    lowStock,
-    needsBuy,
     setSelectedRow,
     setModalMode,
     setDeletingId,
-    setLowStockFilter,
-    toggleSeasonFilter,
     handleAddSubmit,
     handleDeleteConfirm,
+    handleEditProduct,
+    handleVender,
+    handleSearchChange,
   };
 }
 

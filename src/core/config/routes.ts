@@ -3,6 +3,7 @@ export const ROUTES = {
   home: "/",
   gestionSandalias: "/gestion-sandalias",
   gestionBotines: "/gestion-botines",
+  gestionVentas: "/gestion/ventas",
   iniciarSession: "/iniciar-session",
   ecommerce: "/tienda",
 } as const;

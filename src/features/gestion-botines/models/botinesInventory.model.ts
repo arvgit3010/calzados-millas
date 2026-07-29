@@ -1,65 +1,56 @@
-import type { StockRow } from "@/shared/panel";
+// import type { StockRow } from "@/shared/panel";
 // import { PRODUCT_PLACEHOLDER_IMAGE } from "@/shared/panel/constants";
 
 /** Datos mock del inventario de botines.
  *  totalPairs se mantiene manualmente — si se edita sizeN.qty,
  *  debe actualizarse también totalPairs para mantener consistencia.
  *  size3.qty = 0 indica que esa talla no está disponible para el producto. */
-export const botinesInventory: StockRow[] = [
-  {
-    id: 101,
-    model: "Botin Chelsea B-101",
-    color: "Negro",
-    size1: { size: 36, qty: 6 },
-    size2: { size: 37, qty: 3 },
-    size3: { size: 38, qty: 1 },
-    totalPairs: 10,
-    season: "Invierno 2025",
-    status: "Activo",
-    // image: PRODUCT_PLACEHOLDER_IMAGE,
-    provider: "Calzados Mila SAC",
-    soldTotal: 12,
-  },
-  {
-    id: 102,
-    model: "Botin Chelsea B-101",
-    color: "Cafe",
-    size1: { size: 36, qty: 4 },
-    size2: { size: 37, qty: 5 },
-    size3: { size: 38, qty: 4 },
-    totalPairs: 13,
-    season: "Invierno 2025",
-    status: "Activo",
-    // image: PRODUCT_PLACEHOLDER_IMAGE,
-    provider: "Calzados Mila SAC",
-    soldTotal: 18,
-  },
-  {
-    id: 103,
-    model: "Botin Tacón B-202",
-    color: "Beige",
-    size1: { size: 37, qty: 2 },
-    size2: { size: 38, qty: 2 },
-    size3: { size: 39, qty: 0 },
-    totalPairs: 4,
-    season: "Invierno 2025",
-    status: "Activo",
-    // image: PRODUCT_PLACEHOLDER_IMAGE,
-    provider: "Distribuidora Andina",
-    soldTotal: 9,
-  },
-  {
-    id: 104,
-    model: "Botin Tacón B-202",
-    color: "Vino",
-    size1: { size: 37, qty: 1 },
-    size2: { size: 38, qty: 1 },
-    size3: { size: 39, qty: 2 },
-    totalPairs: 4,
-    season: "Invierno 2025",
-    status: "Bloqueado",
-    // image: PRODUCT_PLACEHOLDER_IMAGE,
-    provider: "Distribuidora Andina",
-    soldTotal: 6,
-  },
-];
+export type GetAllBotinesInventoryResponse = {
+  id_producto: number;
+  idModelo: number;
+  descripcionModelo: string;
+  nombreModelo: string;
+  codigoModelo: string;
+  idColor: number;
+  descripcionColor: string;
+  id_talla: number;
+  descripcionTalla: string;
+  sku: string;
+  stock_actual: number;
+  precio_compra_par: string;
+  precio_venta_par: string;
+  pro_observacion: string;
+  usuario_id: number;
+  fecha_registro: string;
+  fecha_actualizacion: string;
+  /** Opcional: el API aún no lo envía; la grilla lo muestra con placeholder. */
+  imagen?: string | null;
+};
+
+
+export type BotinColorApi = {
+  id_color: number;
+  desc_color: string;
+  activo: boolean;
+};
+
+ export  type ModelBotin= {
+  id_modelo: number;
+  codigo_model: string;
+  descModelBotines:string;
+  nombre_model:string;
+};
+
+ export type ModelTalla= {
+  id_talla: number;
+  desc_talla: string;
+ }
+
+   export  type  ModelSeachParams = {
+    codigo: string;
+    modelo: string;
+    talla: string;
+    sku: string
+   };
+
+

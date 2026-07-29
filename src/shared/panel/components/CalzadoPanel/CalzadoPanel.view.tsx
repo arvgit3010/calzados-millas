@@ -1,89 +1,99 @@
 import {
-  AlertCircle,
-  AlertTriangle,
+  // AlertCircle,
+  // AlertTriangle,
   Check,
-  Lock,
-  Package,
+  ImageOff,
+  // Package,
   Pencil,
+  Search,
   ShoppingCart,
   Trash2,
-  Wallet,
+  // Wallet,
   X,
 } from "lucide-react";
-// import { PRODUCT_PLACEHOLDER_IMAGE } from "../../constants";
 import type { CalzadoPanelViewProps } from "../../hooks/useCalzadoPanel";
 import { AddProductModal } from "../AddProductModal/AddProductModal";
+
+const GRID_HEADERS = [
+  { label: "Imagen", align: "center" },
+  { label: "ID Modelo", align: "left" },
+  { label: "SKU", align: "left" },
+  { label: "Modelo", align: "center" },
+  { label: "Color", align: "center" },
+  { label: "Talla", align: "center" },
+  { label: "Stock", align: "center" },
+  { label: "Observaciones", align: "left" },
+  { label: "P. venta", align: "right" },
+  { label: "Acciones", align: "right" },
+] as const;
+
+const headerAlignClass = {
+  left: "text-left",
+  center: "text-center",
+  right: "text-right",
+} as const;
+
+function stockDotClass(qty: number) {
+  if (qty >= 4) return "bg-[#16A34A]";
+  if (qty >= 3) return "bg-[#EAB308]";
+  return "bg-[#EF4444]";
+}
+
+function stockTitle(qty: number) {
+  if (qty >= 4) return "Disponible";
+  if (qty >= 3) return "Stock bajo";
+  return "Stock crítico";
+}
 
 export function CalzadoPanelView({
   displayTitle,
   canMutate,
-  filteredRows,
+  products,
+  loading,
+  searchTerm,
   selectedRow,
   deletingId,
   modalMode,
-  seasonFilter,
-  lowStockFilter,
-  totalPairs,
-  inventoryValue,
-  lowStock,
-  needsBuy,
   setSelectedRow,
   setModalMode,
   setDeletingId,
-  setLowStockFilter,
-  toggleSeasonFilter,
   handleAddSubmit,
   handleDeleteConfirm,
+  handleEditProduct,
+  handleVender,
+  handleSearchChange,
 }: CalzadoPanelViewProps) {
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-sm">
         <div className="shrink-0 border-b border-[#E5E7EB] p-2.5 md:p-3">
-          <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="min-w-0 break-words text-base font-bold text-[#251721] md:text-lg">
               {displayTitle}
             </h2>
-            {canMutate && (
-              <button
-                type="button"
-                onClick={() => setModalMode({ mode: "add" })}
-                className="border border-[#984258] rounded-lg bg-[#984258] text-white px-3 py-1.5 text-[13px] font-semibold cursor-pointer hover:bg-[#7A2E45] transition-all w-full shrink-0 sm:w-auto"
-              >
-                + Agregar Producto
-              </button>
-            )}
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
-            <div className="w-full min-w-0 sm:flex-1 sm:min-w-[10rem]">
-              <input
-                type="text"
-                className="w-full bg-[#FFF0F6] border border-[#E5E7EB] rounded-lg px-3 py-1.5 text-[13px] text-[#251721] outline-none transition-all focus:ring-1 focus:ring-[#984258] focus:border-[#984258]"
-                placeholder="Buscar por modelo o color..."
-                aria-label="Buscar por modelo o color"
-              />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+              <div className="relative w-full sm:w-64">
+                <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[#867275]">
+                  <Search size={14} />
+                </span>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(event) => handleSearchChange(event.target.value)}
+                  placeholder="Buscar por modelo, color, SKU…"
+                  className="w-full rounded-lg border border-[#E5E7EB] bg-white px-7 py-1.5 text-[12px] text-[#251721] outline-none focus:border-[#984258] focus:ring-1 focus:ring-[#984258]/30"
+                />
+              </div>
+              {canMutate && (
+                <button
+                  type="button"
+                  onClick={() => setModalMode({ mode: "add" })}
+                  className="border border-[#984258] rounded-lg bg-[#984258] text-white px-3 py-1.5 text-[13px] font-semibold cursor-pointer hover:bg-[#7A2E45] transition-all w-full shrink-0 sm:w-auto"
+                >
+                  + Agregar Producto
+                </button>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={toggleSeasonFilter}
-              className={`px-3 py-1.5 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-all ${
-                seasonFilter !== null
-                  ? "bg-[#984258] text-white shadow-sm"
-                  : "border border-[#E5E7EB] bg-white text-[#984258] hover:bg-[#FDE2E7]"
-              }`}
-            >
-              Todas las temporadas
-            </button>
-            <button
-              type="button"
-              onClick={() => setLowStockFilter(!lowStockFilter)}
-              className={`px-3 py-1.5 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-all ${
-                lowStockFilter
-                  ? "bg-[#EAB308] text-white shadow-sm"
-                  : "border border-[#E5E7EB] bg-white text-[#984258] hover:bg-[#FDE2E7]"
-              }`}
-            >
-              Stock bajo
-            </button>
           </div>
         </div>
 
@@ -109,170 +119,155 @@ export function CalzadoPanelView({
             <table className="w-full min-w-[1080px] border-collapse">
               <thead className="bg-[#FFF0F6]">
                 <tr>
-                  <th className="px-4 py-3 text-[13px] font-semibold text-[#867275] uppercase tracking-[0.02em] whitespace-nowrap text-left">
-                    Modelo
-                  </th>
-                  <th className="px-4 py-3 text-[13px] font-semibold text-[#867275] uppercase tracking-[0.02em] whitespace-nowrap text-left">
-                    Color
-                  </th>
-                  <th className="px-4 py-3 text-[13px] font-semibold text-[#867275] uppercase tracking-[0.02em] whitespace-nowrap text-center">
-                    Talla 1
-                  </th>
-                  <th className="px-4 py-3 text-[13px] font-semibold text-[#867275] uppercase tracking-[0.02em] whitespace-nowrap text-center">
-                    Talla 2
-                  </th>
-                  <th className="px-4 py-3 text-[13px] font-semibold text-[#867275] uppercase tracking-[0.02em] whitespace-nowrap text-center">
-                    Talla 3
-                  </th>
-                  <th className="px-4 py-3 text-[13px] font-semibold text-[#867275] uppercase tracking-[0.02em] whitespace-nowrap text-center">
-                    Total Pares
-                  </th>
-                  <th className="px-4 py-3 text-[13px] font-semibold text-[#867275] uppercase tracking-[0.02em] whitespace-nowrap text-left">
-                    Proveedor
-                  </th>
-                  <th className="px-4 py-3 text-[13px] font-semibold text-[#867275] uppercase tracking-[0.02em] whitespace-nowrap text-left">
-                    Temporada
-                  </th>
-                  <th className="px-4 py-3 text-[13px] font-semibold text-[#867275] uppercase tracking-[0.02em] whitespace-nowrap text-left">
-                    Estado
-                  </th>
-                  <th className="px-4 py-3 text-[13px] font-semibold text-[#867275] uppercase tracking-[0.02em] whitespace-nowrap text-right">
-                    Acciones
-                  </th>
+                  {GRID_HEADERS.map((header) => (
+                    <th
+                      key={header.label}
+                      className={`px-4 py-3 text-[13px] font-semibold text-[#867275] uppercase tracking-[0.02em] whitespace-nowrap ${headerAlignClass[header.align]}`}
+                    >
+                      {header.label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E7EB]">
-                {filteredRows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="group hover:bg-[#FBF0F0]/50 transition-all duration-150 hover:translate-x-[4px]"
-                    style={{ transition: "all 0.15s ease" }}
-                  >
+                {loading ? (
+                  <tr>
                     <td
-                      className="px-4 py-3 text-sm font-bold text-[#251721] cursor-zoom-in"
-                      onClick={() => setSelectedRow(row)}
+                      colSpan={GRID_HEADERS.length}
+                      className="px-4 py-8 text-center text-[13px] text-[#867275]"
                     >
-                      {row.model}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={row.image ?? ""}
-                          alt={`${row.model} ${row.color}`}
-                          className="w-11 h-11 rounded-lg border border-[#E5E7EB] object-cover bg-white"
-                        />
-                        <span className="text-sm font-medium text-[#544245]">{row.color}</span>
-                      </div>
-                    </td>
-                    {[row.size1, row.size2, row.size3].map((size, i) => (
-                      <td key={i} className="px-4 py-3 text-center">
-                        <div className="inline-flex items-center justify-center gap-1.5">
-                          <span
-                            className={`w-2 h-2 rounded-full shrink-0 ${
-                              size.qty >= 4
-                                ? "bg-[#16A34A]"
-                                : size.qty >= 3
-                                  ? "bg-[#EAB308]"
-                                  : "bg-[#EF4444]"
-                            }`}
-                            title={
-                              size.qty >= 4
-                                ? "Disponible"
-                                : size.qty >= 3
-                                  ? "Stock bajo"
-                                  : "Stock crítico"
-                            }
-                          />
-                          <span className="text-[13px] font-bold text-[#251721]">{size.size}</span>
-                          <span className="text-[12px] text-[#544245]">· {size.qty}p</span>
-                          <button
-                            type="button"
-                            className="p-1 text-[#867275] hover:text-[#984258] hover:bg-[#984258]/5 rounded-full transition-all cursor-pointer"
-                            aria-label="Vender"
-                          >
-                            <ShoppingCart size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    ))}
-                    <td className="px-4 py-3 text-center text-lg font-extrabold text-[#984258]">
-                      {row.totalPairs}
-                    </td>
-                    <td className="px-4 py-3 text-[13px] text-[#544245]">{row.provider ?? "—"}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#867275]">{row.season}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                          row.status === "Activo"
-                            ? "bg-[#16A34A]/10 text-[#16A34A]"
-                            : "bg-[#6B7280]/15 text-[#6B7280]"
-                        }`}
-                      >
-                        {row.status === "Bloqueado" ? (
-                          <Lock size={12} className="mr-1.5" />
-                        ) : (
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full mr-2 ${
-                              row.status === "Activo" ? "bg-[#16A34A]" : "bg-[#6B7280]"
-                            }`}
-                          />
-                        )}
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {deletingId === row.id ? (
-                        <div className="flex justify-end items-center gap-1 text-[12px] text-[#EF4444] font-semibold">
-                          <span>¿Eliminar?</span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteConfirm(row.id)}
-                            className="p-1.5 text-white bg-[#EF4444] rounded-full hover:bg-[#DC2626] transition-colors cursor-pointer"
-                            aria-label="Confirmar eliminación"
-                          >
-                            <Check size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeletingId(null)}
-                            className="p-1.5 text-[#544245] border border-[#E5E7EB] rounded-full hover:bg-[#FFF0F6] transition-colors cursor-pointer"
-                            aria-label="Cancelar eliminación"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex justify-end gap-2">
-                          {canMutate && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => setModalMode({ mode: "edit", row })}
-                                className="p-2 text-[#984258] hover:bg-[#984258]/5 rounded-full transition-colors cursor-pointer"
-                                aria-label="Editar"
-                              >
-                                <Pencil size={16} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDeletingId(row.id)}
-                                className="p-2 text-[#867275] hover:text-[#EF4444] hover:bg-[#EF4444]/5 rounded-full transition-colors cursor-pointer"
-                                aria-label="Eliminar"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      )}
+                      Cargando productos…
                     </td>
                   </tr>
-                ))}
+                ) : products.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={GRID_HEADERS.length}
+                      className="px-4 py-8 text-center text-[13px] text-[#867275]"
+                    >
+                      No hay productos para mostrar
+                    </td>
+                  </tr>
+                ) : (
+                  products.map((row) => (
+                    <tr
+                      key={row.id_producto}
+                      className="group hover:bg-[#FBF0F0]/50 transition-all duration-150 hover:translate-x-[4px]"
+                      style={{ transition: "all 0.15s ease" }}
+                    >
+                      <td className="px-4 py-3 text-center">
+                        {row.imagen ? (
+                          <img
+                            src={row.imagen}
+                            alt={`${row.nombreModelo} ${row.descripcionColor}`}
+                            className="mx-auto w-11 h-11 rounded-lg border border-[#E5E7EB] object-cover bg-white"
+                          />
+                        ) : (
+                          <div
+                            className="mx-auto flex w-11 h-11 items-center justify-center rounded-lg border border-[#E5E7EB] bg-[#FFF0F6] text-[#867275]"
+                            title="Sin imagen"
+                          >
+                            <ImageOff size={16} aria-hidden="true" />
+                          </div>
+                        )}
+                      </td>
+                      <td
+                        className="px-4 py-3 text-sm font-bold text-[#251721] cursor-zoom-in"
+                        onClick={() => setSelectedRow(row)}
+                      >
+                        {row.codigoModelo}
+                      </td>
+                      <td className="px-4 py-3 text-[13px] font-medium text-[#544245]">{row.sku}</td>
+                      <td className="px-4 py-3 text-center text-sm font-semibold text-[#251721]">
+                        {row.nombreModelo}
+                      </td>
+                      <td className="px-4 py-3 text-center text-[13px] text-[#544245]">
+                        {row.descripcionColor}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="inline-flex items-center justify-center gap-1.5">
+                          <span
+                            className={`w-2 h-2 rounded-full shrink-0 ${stockDotClass(row.stock_actual)}`}
+                            title={stockTitle(row.stock_actual)}
+                          />
+                          <span className="text-[13px] font-bold text-[#251721]">
+                            {row.descripcionTalla}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center text-lg font-extrabold text-[#984258]">
+                        {row.stock_actual}
+                      </td>
+                      <td className="px-4 py-3 text-[13px] text-[#544245] max-w-[220px]">
+                        <span className="line-clamp-2">{row.pro_observacion || "—"}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-[13px] font-semibold text-[#251721]">
+                        S/ {Number(row.precio_venta_par).toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {deletingId === row.id_producto ? (
+                          <div className="flex justify-end items-center gap-1 text-[12px] text-[#EF4444] font-semibold">
+                            <span>¿Eliminar?</span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteConfirm(row.id_producto)}
+                              className="p-1.5 text-white bg-[#EF4444] rounded-full hover:bg-[#DC2626] transition-colors cursor-pointer"
+                              aria-label="Confirmar eliminación"
+                            >
+                              <Check size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeletingId(null)}
+                              className="p-1.5 text-[#544245] border border-[#E5E7EB] rounded-full hover:bg-[#FFF0F6] transition-colors cursor-pointer"
+                              aria-label="Cancelar eliminación"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex justify-end items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleVender(row)}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#984258] text-white text-[11px] font-semibold hover:bg-[#7A2E45] transition-colors cursor-pointer border-0"
+                              aria-label="Vender"
+                            >
+                              <ShoppingCart size={13} />
+                              Vender
+                            </button>
+                            {canMutate && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditProduct(row)}
+                                  className="p-2 text-[#984258] hover:bg-[#984258]/5 rounded-full transition-colors cursor-pointer"
+                                  aria-label="Editar"
+                                >
+                                  <Pencil size={16} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingId(row.id_producto)}
+                                  className="p-2 text-[#867275] hover:text-[#EF4444] hover:bg-[#EF4444]/5 rounded-full transition-colors cursor-pointer"
+                                  aria-label="Eliminar"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
+        {/* Resumen inferior: pares / valor / stock bajo / crítico
         <div className="shrink-0 border-t border-[#E5E7EB] bg-[#FFF7F9] px-3 py-2">
           <div className="grid grid-cols-2 gap-1.5 lg:grid-cols-4 lg:gap-2">
             <div className="flex items-center gap-2 rounded-md bg-white border border-[#E5E7EB] px-2 py-1">
@@ -313,14 +308,16 @@ export function CalzadoPanelView({
             </div>
           </div>
         </div>
+        */}
       </div>
+
       {selectedRow ? (
         <div className="modal-backdrop" role="presentation" onClick={() => setSelectedRow(null)}>
           <article
             className="product-modal"
             role="dialog"
             aria-modal="true"
-            aria-label={`Detalles de ${selectedRow.model}`}
+            aria-label={`Detalles de ${selectedRow.nombreModelo}`}
             onClick={(event) => event.stopPropagation()}
           >
             <button
@@ -331,35 +328,43 @@ export function CalzadoPanelView({
             >
               x
             </button>
-            <img
-              src={selectedRow.image ?? ""}
-              alt={selectedRow.model}
-              className="modal-photo"
-            />
-            <h3 className="modal-title">{selectedRow.model}</h3>
-            <p className="modal-subtitle">{selectedRow.color}</p>
+            {selectedRow.imagen ? (
+              <img
+                src={selectedRow.imagen}
+                alt={selectedRow.nombreModelo}
+                className="modal-photo"
+              />
+            ) : (
+              <div className="modal-photo flex items-center justify-center bg-[#FFF0F6] text-[#867275]">
+                <ImageOff size={32} />
+              </div>
+            )}
+            <h3 className="modal-title">{selectedRow.nombreModelo}</h3>
+            <p className="modal-subtitle">{selectedRow.descripcionColor}</p>
             <div className="modal-specs">
               <p>
-                <strong>Proveedor:</strong> {selectedRow.provider ?? "No registrado"}
+                <strong>SKU:</strong> {selectedRow.sku}
               </p>
               <p>
-                <strong>Temporada:</strong> {selectedRow.season}
+                <strong>Código:</strong> {selectedRow.codigoModelo}
               </p>
               <p>
-                <strong>Stock total:</strong> {selectedRow.totalPairs} pares
+                <strong>Talla:</strong> {selectedRow.descripcionTalla}
               </p>
               <p>
-                <strong>Total vendido:</strong> {selectedRow.soldTotal ?? 0} pares
+                <strong>Stock:</strong> {selectedRow.stock_actual} pares
               </p>
               <p>
-                <strong>Tallas:</strong> {selectedRow.size1.size} ({selectedRow.size1.qty}),{" "}
-                {selectedRow.size2.size} ({selectedRow.size2.qty}), {selectedRow.size3.size} (
-                {selectedRow.size3.qty})
+                <strong>P. venta:</strong> S/ {Number(selectedRow.precio_venta_par).toFixed(2)}
+              </p>
+              <p>
+                <strong>Observaciones:</strong> {selectedRow.pro_observacion || "—"}
               </p>
             </div>
           </article>
         </div>
       ) : null}
+
       <AddProductModal
         open={modalMode !== null}
         onClose={() => setModalMode(null)}

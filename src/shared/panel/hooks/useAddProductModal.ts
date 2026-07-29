@@ -1,20 +1,30 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { AddProductFormData, StockRow } from "../types";
-import { getBotinesColores } from "@/features/gestion-botines/services/botines.service";
+import { getBotinesColores, getBotinesModelos, getBotinesTallas } from "@/features/gestion-botines/services/botines.service";
 import { getApiErrorMessage } from "@/core";
+import type { ModelBotin, ModelTalla } from "@/features/gestion-botines/models/botinesInventory.model";
 
-const TALLAS = [35, 36, 37, 38, 39] as const;
-const COLORES = ["Negro", "Beige", "Blanco", "Marrón", "Rojo", "Azul"] as const;
-const MODELOS = [
-  "Sandalia Casual S-001",
-  "Sandalia Elegante S-002",
-  "Botin Chelsea B-101",
-  "Botin Clasico B-102",
-  "Otro modelo…",
-] as const;
+// const TALLAS = [35, 36, 37, 38, 39] as const;
+// const COLORES = ["Negro", "Beige", "Blanco", "Marrón", "Rojo", "Azul"] as const;
+// const MODELOS = [
+//   "Sandalia Casual S-001",
+//   "Sandalia Elegante S-002",
+//   "Botin Chelsea B-101",
+//   "Botin Clasico B-102",
+//   "Otro modelo…",
+// ] as const;
+
+
+type Color = {
+  id: number;
+  name: string;
+  description: string;
+  image: string;
+
+}
 
 const QTY_BY_CONFIG = {
   pack_5_9: 9,
@@ -84,21 +94,22 @@ function toModalDefaults(editingRow?: StockRow): ModalFormData {
   };
 }
 
-function toAddProductData(data: ModalFormData): AddProductFormData {
-  const qty =
-    data.cantidadConfig === "otro" ? (data.cantidadOtro ?? 0) : QTY_BY_CONFIG[data.cantidadConfig];
+// function toAddProductData(data: ModalFormData): AddProductFormData {
+//   const qty =
+//     data.cantidadConfig === "otro" ? (data.cantidadOtro ?? 0) : QTY_BY_CONFIG[data.cantidadConfig];
 
-  return {
-    modelo: data.modelo,
-    color: data.color,
-    temporada: "Verano 2024",
-    precio: data.precio,
-    pares: TALLAS.map((talla) => ({
-      talla,
-      cantidad: talla === data.talla ? qty : 0,
-    })),
-  };
-}
+//   return {
+//     modelo: data.modelo,
+//     color: data.color,
+//     temporada: "Verano 2024",
+//     precio: data.precio,
+//     pares: [],
+//     // TALLAS.map((talla) => ({
+//     //   talla,
+//     //   cantidad: talla === data.talla ? qty : 0,
+//     // })),
+//   };
+// }
 
 type UseAddProductModalArgs = {
   open: boolean;
@@ -107,75 +118,96 @@ type UseAddProductModalArgs = {
   editingRow?: StockRow;
 };
 
-export function useAddProductModal({
-  open,
-  onClose,
-  onSubmit,
-  editingRow,
-}: UseAddProductModalArgs) {
+export function useAddProductModal({open,onClose,editingRow}: UseAddProductModalArgs) {
+  const [colores, setColores] = useState<Color[]>([]);
+  const [modelos, setModelos] = useState<ModelBotin[]>([]);
+  const [tallas, setTallas] = useState<ModelTalla[]>([]);
+
+
+
   const isEditing = !!editingRow;
   const [customModelo, setCustomModelo] = useState("");
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<ModalFormData>({
+  const {register,watch,setValue,    formState: { errors, isSubmitting } } = useForm<ModalFormData>({
     resolver: zodResolver(modalSchema),
     defaultValues: toModalDefaults(editingRow),
   });
 
   const cantidadConfig = watch("cantidadConfig");
   const modelo = watch("modelo");
-  const cantidadOtro = watch("cantidadOtro");
+  // const cantidadOtro = watch("cantidadOtro");
 
-  const resumenQty = useMemo(() => {
-    if (cantidadConfig === "otro") return cantidadOtro || 0;
-    return QTY_BY_CONFIG[cantidadConfig];
-  }, [cantidadConfig, cantidadOtro]);
+  // const resumenQty = useMemo(() => {
+  //   if (cantidadConfig === "otro") return cantidadOtro || 0;
+  //   return QTY_BY_CONFIG[cantidadConfig];
+  // }, [cantidadConfig, cantidadOtro]);
 
   useEffect(() => {
     if (!open) return;
 
-    reset(toModalDefaults(editingRow));
-    setCustomModelo("");
-
     let cancelled = false;
 
-    async function loadColores() {
+    (async () => {
       try {
-        const colores = await getBotinesColores();
-        if (!cancelled) console.log("Colores de botines:", colores);
+        const dataCol = await getBotinesColores();
+        if (cancelled) return;
+        setColores(
+          dataCol.map((c) => ({
+            id: c.id_color,
+            name: c.desc_color,
+            description: c.desc_color,
+            image: "",
+          })),
+        );
       } catch (error) {
         if (!cancelled) console.error(getApiErrorMessage(error));
       }
-    }
+    })();
 
-    void loadColores();
+    (async ()=> {
+      try {
+        const dataModelos = await getBotinesModelos();
+        if (cancelled) return;
+        setModelos(dataModelos);
+   
+      } catch (error) {
+        if (!cancelled) console.error(getApiErrorMessage(error));
+      }
+    })();
+
+    (async ()=> {
+      try {
+        const dataTallas = await getBotinesTallas();
+        if (cancelled) return;
+        setTallas(dataTallas);
+      } catch (error) {
+        if (!cancelled) console.error(getApiErrorMessage(error));
+      }
+    })();
 
     return () => {
       cancelled = true;
     };
-  }, [open, editingRow, reset]);
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [open, onClose]);
+  }, [open]);
 
-  const onValid = async (data: ModalFormData) => {
-    const modeloFinal =
-      data.modelo === "Otro modelo…" ? customModelo.trim() || "Modelo personalizado" : data.modelo;
-    await onSubmit(toAddProductData({ ...data, modelo: modeloFinal }));
-    onClose();
-  };
+  
+
+  // useEffect(() => {
+  //   if (!open) return;
+  //   const handler = (e: KeyboardEvent) => {
+  //     if (e.key === "Escape") onClose();
+  //   };
+  //   document.addEventListener("keydown", handler);
+  //   return () => document.removeEventListener("keydown", handler);
+  // }, [open, onClose]);
+
+  // const onValid = async (data: ModalFormData) => {
+  //   const modeloFinal =
+  //     data.modelo === "Otro modelo…" ? customModelo.trim() || "Modelo personalizado" : data.modelo;
+  //   await onSubmit(toAddProductData({ ...data, modelo: modeloFinal }));
+  //   onClose();
+  // };
 
   return {
     open,
@@ -189,11 +221,11 @@ export function useAddProductModal({
     isSubmitting,
     cantidadConfig,
     modelo,
-    resumenQty,
-    modelos: MODELOS,
-    colores: COLORES,
-    tallas: TALLAS,
-    onSubmitForm: handleSubmit(onValid),
+    // resumenQty,
+    modelos: modelos || [],
+    colores: colores || [],
+    tallas: tallas || [],
+    onSubmitForm: () => {},
   };
 }
 

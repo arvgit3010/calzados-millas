@@ -7,6 +7,17 @@ export type NestHttpException = {
 
 export type ApiErrorPayload = NestHttpException | { message?: string };
 
+/** Envelope estándar de respuestas exitosas/fallidas del API */
+export type ApiResponse<T> = {
+  data: T;
+  errors: string[];
+  message: string;
+  meta: unknown;
+  statusCode: number;
+  success: boolean;
+  timestamp: string;
+};
+
 /* ─── Auth ─────────────────────────────────────────── */
 
 export interface LoginRequest {

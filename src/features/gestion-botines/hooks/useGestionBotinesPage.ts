@@ -1,11 +1,12 @@
 import { useInventoryCrud } from "@/shared/panel";
-import { getBotinesInventory } from "../services/botines.service";
 
 export function useGestionBotinesPage() {
-  const crud = useInventoryCrud(getBotinesInventory);
+  // El listado se carga desde el API en useCalzadoPanel (getBotinesInventory).
+  // Aquí el CRUD solo gestiona altas/ediciones/bajas locales.
+  const crud = useInventoryCrud(() => []);
 
   return {
-    title: "Gestión de Botines",
+    title: "",
     inventoryTitle: "Inventario de Botines",
     section: "botines" as const,
     rows: crud.rows,

@@ -12,7 +12,6 @@ const ITEMS: NavItem[] = [
   { label: "Sandalias", icon: <Flower2 size={18} />, to: ROUTES.gestionSandalias },
   { label: "Botines", icon: <Mountain size={18} />, to: ROUTES.gestionBotines },
 ];
-
 export function InventorySidebar() {
   return (
     <aside className="flex flex-col h-full">

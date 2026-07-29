@@ -4,7 +4,6 @@ import {
   Cuboid,
   Info,
   PackagePlus,
-  Palette,
   Ruler,
   Save,
   X,
@@ -40,7 +39,7 @@ export function AddProductModalView({
   isSubmitting,
   cantidadConfig,
   modelo,
-  resumenQty,
+  // resumenQty,
   modelos,
   colores,
   tallas,
@@ -63,7 +62,7 @@ export function AddProductModalView({
       role="presentation"
     >
       <div
-        className="w-full max-w-[520px] max-h-[86dvh] overflow-y-auto bg-white rounded-xl shadow-xl"
+        className="w-full max-w-[760px] max-h-[90dvh] overflow-y-auto bg-white rounded-xl shadow-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -95,15 +94,15 @@ export function AddProductModalView({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div className="space-y-2">
               <div>
-                <label className="block text-[8px] font-bold uppercase tracking-wider text-[#867275] mb-0.5">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#867275] mb-0.5">
                   Modelo
                 </label>
                 <div className="relative">
                   <select className={`${field} px-2 py-1.5 pr-7`} {...register("modelo")}>
                     <option value="">Selecciona un modelo</option>
                     {modelos.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
+                      <option key={m.id_modelo} value={m.id_modelo}>
+                        {m.  descModelBotines}
                       </option>
                     ))}
                   </select>
@@ -126,18 +125,15 @@ export function AddProductModalView({
 
               <div className="grid grid-cols-2 gap-1.5">
                 <div>
-                  <label className="block text-[8px] font-bold uppercase tracking-wider text-[#867275] mb-0.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#867275] mb-0.5">
                     Color
                   </label>
                   <div className="relative">
-                    <Palette
-                      size={11}
-                      className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[#984258]"
-                    />
-                    <select className={`${field} pl-6 pr-5 py-1.5`} {...register("color")}>
+                    <select className={`${field} px-2 py-1.5 pr-7`} {...register("color")}>
+                      <option value=""  className="text-[2px]">Selecciona un color</option>
                       {colores.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
+                        <option key={c.id} value={c.name}>
+                          {c.name}
                         </option>
                       ))}
                     </select>
@@ -146,6 +142,7 @@ export function AddProductModalView({
                       className="absolute right-1 top-1/2 -translate-y-1/2 text-[#867275] pointer-events-none"
                     />
                   </div>
+                  {errors.color && <p className="text-[10px] text-[#EF4444]">{errors.color.message}</p>}
                 </div>
                 <div>
                   <label className="block text-[8px] font-bold uppercase tracking-wider text-[#867275] mb-0.5">
@@ -161,8 +158,8 @@ export function AddProductModalView({
                       {...register("talla", { valueAsNumber: true })}
                     >
                       {tallas.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
+                        <option key={t.id_talla} value={t.id_talla}>
+                          {t.desc_talla}
                         </option>
                       ))}
                     </select>
@@ -280,7 +277,7 @@ export function AddProductModalView({
             <div>
               <p className="text-[8px] font-bold uppercase tracking-wider text-[#984258]">Resumen</p>
               <p className="text-[10px] text-[#544245] leading-snug">
-                Se añadirá con <strong className="text-[#251721]">{resumenQty || 0} pares</strong> en
+                Se añadirá con <strong className="text-[#251721]">{0 || 0} pares</strong> en
                 la talla seleccionada.
               </p>
             </div>
