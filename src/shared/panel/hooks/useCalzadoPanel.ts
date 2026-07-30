@@ -6,7 +6,10 @@ import {
   searchBotinesInventory,
 } from "@/features/gestion-botines/services/botines.service";
 import { getApiErrorMessage, ROUTES } from "@/core";
-import type { GetAllBotinesInventoryResponse, ModelSeachParams } from "@/features/gestion-botines/models/botinesInventory.model";
+import type {
+  GetAllBotinesInventoryResponse,
+  ModelSeachParams,
+} from "@/features/gestion-botines/models/botinesInventory.model";
 
 export type UseCalzadoPanelArgs = {
   rows: StockRow[];
@@ -14,6 +17,8 @@ export type UseCalzadoPanelArgs = {
   onAddProduct?: (data: AddProductFormData) => void;
   onEditProduct?: (id: number, data: AddProductFormData) => void;
   onDeleteProduct?: (id: number) => void;
+  /** Opcional: en lugar de navegar, notifica el producto seleccionado (modo "selector"). */
+  onVenderProduct?: (product: GetAllBotinesInventoryResponse) => void;
 };
 
 function toStockRow(product: GetAllBotinesInventoryResponse): StockRow {
@@ -37,6 +42,7 @@ export function useCalzadoPanel({
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
+  onVenderProduct,
 }: UseCalzadoPanelArgs) {
   const navigate = useNavigate();
   const canMutate = !!onAddProduct;
@@ -49,6 +55,7 @@ export function useCalzadoPanel({
     { mode: "add" } | { mode: "edit"; row: StockRow } | null
   >(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const isSelectorMode = !!onVenderProduct;
 
   useEffect(() => {
     let cancelled = false;
@@ -114,6 +121,10 @@ export function useCalzadoPanel({
   };
 
   const handleVender = (product: GetAllBotinesInventoryResponse) => {
+    if (onVenderProduct) {
+      onVenderProduct(product);
+      return;
+    }
     navigate(ROUTES.gestionVentas, { state: { product } });
   };
 
@@ -125,6 +136,7 @@ export function useCalzadoPanel({
     searchTerm,
     selectedRow,
     deletingId,
+    isSelectorMode,
     modalMode,
     setSelectedRow,
     setModalMode,

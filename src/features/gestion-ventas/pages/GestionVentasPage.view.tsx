@@ -11,7 +11,7 @@ export function GestionVentasPageView({ product }: GestionVentasPageViewProps) {
             ? `Venta de ${product.nombreModelo} · ${product.descripcionColor} · Talla ${product.descripcionTalla}`
             : "Selecciona un producto desde el inventario para vender"}
         </p>
-        <PanelVentas />
+        <PanelVentas product={product} />
       </div>
     </section>
   );
