@@ -1,18 +1,24 @@
+// import { Response } from './../../../features/gestion-botines/models/botinesInventory.model';
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { AddProductFormData, StockRow } from "../types";
 import {
-  getBotinesInventory,
-  searchBotinesInventory,
+  getBotinesInventoryProducts,
+  invalidateBotinesInventoryCache,
+  searchBotinesInventoryProduct,
 } from "@/features/gestion-botines/services/botines.service";
-import { getApiErrorMessage, ROUTES } from "@/core";
+import {
+  botinesSocket,
+  getApiErrorMessage,
+  ROUTES,
+  type BotinesStockUpdate,
+} from "@/core";
 import type {
   GetAllBotinesInventoryResponse,
-  ModelSeachParams,
 } from "@/features/gestion-botines/models/botinesInventory.model";
 
 export type UseCalzadoPanelArgs = {
-  rows: StockRow[];
+  rows?: StockRow[];
   inventoryTitle: string;
   onAddProduct?: (data: AddProductFormData) => void;
   onEditProduct?: (id: number, data: AddProductFormData) => void;
@@ -56,49 +62,87 @@ export function useCalzadoPanel({
   >(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const isSelectorMode = !!onVenderProduct;
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     let cancelled = false;
+    const delay = searchTerm.trim() ? 300 : 0;
 
-    (async () => {
+    const timeoutId = window.setTimeout(async () => {
       setLoading(true);
       try {
-        const data = await getBotinesInventory();
+        const data = searchTerm.trim()
+          ? await searchBotinesInventoryProduct({
+              inputDescriptionSearch: searchTerm.trim(),
+            })
+          : await getBotinesInventoryProducts();
         if (cancelled) return;
         setProducts(data);
+        setPage(1);
       } catch (error) {
         if (!cancelled) console.error(getApiErrorMessage(error));
       } finally {
         if (!cancelled) setLoading(false);
       }
-    })();
+    }, delay);
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timeoutId);
     };
-  }, []);
+  }, [searchTerm]);
 
-  const handleSearchChange = async (value: string) => {
-    const term = value;
-     const searchParams: ModelSeachParams = {
-      codigo: term,
-      modelo: term,
-      talla: term,
-      sku: term,
-     };
-    setSearchTerm(term);
+  useEffect(() => {
+    const handleStockUpdate = (updatedProduct: BotinesStockUpdate) => {
+      invalidateBotinesInventoryCache();
+      setProducts((currentProducts) =>
+        currentProducts.map((product) =>
+          product.id_producto === updatedProduct.id_producto ||
+          product.sku === updatedProduct.sku
+            ? {
+                ...product,
+                stock_actual: updatedProduct.stock_actual,
+                precio_compra_par:
+                  updatedProduct.precio_compra_par ?? product.precio_compra_par,
+                precio_venta_par:
+                  updatedProduct.precio_venta_par ?? product.precio_venta_par,
+                pro_observacion:
+                  updatedProduct.pro_observacion ?? product.pro_observacion,
+                fecha_actualizacion:
+                  updatedProduct.fecha_actualizacion ??
+                  product.fecha_actualizacion,
+              }
+            : product,
+        ),
+      );
+    };
 
-   
-    setLoading(true);
-    try {
-      const data = Object.values(searchParams).some(value => value !== '') ? await searchBotinesInventory(searchParams) : await getBotinesInventory();
-      setProducts(data);
-    } catch (error) {
+    const handleCompraRealizada = async () => {
+      try {
+        const data = searchTerm.trim()
+          ? await searchBotinesInventoryProduct({
+              inputDescriptionSearch: searchTerm,
+            })
+          : await getBotinesInventoryProducts();
+        setProducts(data);
+        setPage(1);
+      } catch (error) {
+        console.error(getApiErrorMessage(error));
+      }
+    };
 
-      console.error(getApiErrorMessage(error));
-    } finally {
-      setLoading(false);
-    }
+    botinesSocket.on("stock-update", handleStockUpdate);
+    botinesSocket.on("compra-realizada", handleCompraRealizada);
+
+    return () => {
+      botinesSocket.off("stock-update", handleStockUpdate);
+      botinesSocket.off("compra-realizada", handleCompraRealizada);
+    };
+  }, [searchTerm]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
   };
 
   const handleAddSubmit = (data: AddProductFormData) => {
@@ -110,10 +154,30 @@ export function useCalzadoPanel({
     setModalMode(null);
   };
 
+  const handleProductCreated = async () => {
+    setLoading(true);
+    try {
+      const data = await getBotinesInventoryProducts();
+      setProducts(data);
+      setSearchTerm("");
+      setPage(1);
+    } catch (error) {
+      console.error(getApiErrorMessage(error));
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeleteConfirm = (id: number) => {
     onDeleteProduct?.(id);
     setDeletingId(null);
-    setProducts((prev) => prev.filter((p) => p.id_producto !== id));
+    setProducts((prev) => {
+      const next = prev.filter((p) => p.id_producto !== id);
+      const totalPages = Math.max(1, Math.ceil(next.length / pageSize));
+      if (page > totalPages) setPage(totalPages);
+      return next;
+    });
   };
 
   const handleEditProduct = (product: GetAllBotinesInventoryResponse) => {
@@ -125,13 +189,33 @@ export function useCalzadoPanel({
       onVenderProduct(product);
       return;
     }
+
     navigate(ROUTES.gestionVentas, { state: { product } });
   };
+
+  const totalPages = Math.max(1, Math.ceil(products.length / pageSize));
+  const paginatedProducts = products.slice(
+    (page - 1) * pageSize,
+    page * pageSize,
+  );
+
+  const goToPage = (newPage: number) => {
+    const safePage = Math.min(totalPages, Math.max(1, newPage));
+    setPage(safePage);
+  };
+
+  const nextPage = () => goToPage(page + 1);
+  const prevPage = () => goToPage(page - 1);
 
   return {
     displayTitle: inventoryTitle,
     canMutate,
     products,
+    paginatedProducts,
+    page,
+    totalPages,
+    nextPage,
+    prevPage,
     loading,
     searchTerm,
     selectedRow,
@@ -142,6 +226,7 @@ export function useCalzadoPanel({
     setModalMode,
     setDeletingId,
     handleAddSubmit,
+    handleProductCreated,
     handleDeleteConfirm,
     handleEditProduct,
     handleVender,

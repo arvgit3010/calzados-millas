@@ -4,7 +4,7 @@ import type { GetAllBotinesInventoryResponse } from "@/features/gestion-botines/
 import { CalzadoPanelView } from "./CalzadoPanel.view";
 
 type CalzadoPanelProps = {
-  rows: StockRow[];
+  rows?: StockRow[];
   inventoryTitle: string;
   onAddProduct?: (data: AddProductFormData) => void;
   onEditProduct?: (id: number, data: AddProductFormData) => void;

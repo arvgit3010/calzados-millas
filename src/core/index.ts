@@ -10,3 +10,11 @@ export {
 } from "./api";
 export type { ApiErrorPayload, ApiResponse, NestHttpException } from "./api";
 export { AuthProvider, useAuth } from "./context";
+export {
+  BotinesSocketProvider,
+  botinesSocket,
+} from "./socket";
+export type {
+  BotinesStockUpdate,
+  VentaRealizadaResumen,
+} from "./socket";

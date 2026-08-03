@@ -1,17 +1,17 @@
 import {
   // AlertCircle,
   // AlertTriangle,
-  Check,
   ImageOff,
   // Package,
-  Pencil,
   Search,
   ShoppingCart,
-  Trash2,
   // Wallet,
-  X,
 } from "lucide-react";
 import type { CalzadoPanelViewProps } from "../../hooks/useCalzadoPanel";
+import {
+  getStockStatus,
+  STOCK_STATUS_CONFIG,
+} from "../../utils/stockStatus";
 import { AddProductModal } from "../AddProductModal/AddProductModal";
 
 const GRID_HEADERS = [
@@ -33,34 +33,24 @@ const headerAlignClass = {
   right: "text-right",
 } as const;
 
-function stockDotClass(qty: number) {
-  if (qty >= 4) return "bg-[#16A34A]";
-  if (qty >= 3) return "bg-[#EAB308]";
-  return "bg-[#EF4444]";
-}
-
-function stockTitle(qty: number) {
-  if (qty >= 4) return "Disponible";
-  if (qty >= 3) return "Stock bajo";
-  return "Stock crítico";
-}
-
 export function CalzadoPanelView({
   displayTitle,
   canMutate,
   products,
+  paginatedProducts,
+  page,
+  totalPages,
+  nextPage,
+  prevPage,
   loading,
   searchTerm,
   selectedRow,
-  deletingId,
   isSelectorMode,
   modalMode,
   setSelectedRow,
   setModalMode,
-  setDeletingId,
   handleAddSubmit,
-  handleDeleteConfirm,
-  handleEditProduct,
+  handleProductCreated,
   handleVender,
   handleSearchChange,
 }: CalzadoPanelViewProps) {
@@ -74,7 +64,7 @@ export function CalzadoPanelView({
             <h2 className="min-w-0 break-words text-base font-bold text-[#251721] md:text-lg">
               {displayTitle}
             </h2>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
               <div className="relative w-full sm:w-64">
                 <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[#867275]">
                   <Search size={14} />
@@ -86,6 +76,20 @@ export function CalzadoPanelView({
                   placeholder="Buscar por modelo, color, SKU…"
                   className="w-full rounded-lg border border-[#E5E7EB] bg-white px-7 py-1.5 text-[12px] text-[#251721] outline-none focus:border-[#984258] focus:ring-1 focus:ring-[#984258]/30"
                 />
+              </div>
+              <div
+                className="flex items-center gap-3 rounded-full bg-[#FFF7F9] px-3 py-1 text-[10px] text-[#544245]"
+                aria-label="Leyenda de colores de stock"
+              >
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-[#16A34A]" /> Disponible
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-[#EAB308]" /> Bajo
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-[#EF4444]" /> Crítico
+                </span>
               </div>
               {canMutate && (
                 <button
@@ -101,20 +105,6 @@ export function CalzadoPanelView({
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto p-3 md:p-4 md:pt-3">
-          <div
-            className="flex items-center gap-4 px-1 pb-2 text-[11px] text-[#544245]"
-            aria-label="Leyenda de colores de stock"
-          >
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#16A34A]" /> Disponible
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#EAB308]" /> Bajo
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#EF4444]" /> Crítico
-            </span>
-          </div>
           <p className="mb-2 text-center text-[11px] text-[#867275] md:hidden">
             Desliza horizontalmente para ver toda la tabla
           </p>
@@ -167,7 +157,7 @@ export function CalzadoPanelView({
                     </td>
                   </tr>
                 ) : (
-                  products.map((row) => (
+                  paginatedProducts.map((row) => (
                     <tr
                       key={row.id_producto}
                       className="group hover:bg-[#FBF0F0]/50 transition-all duration-150 hover:translate-x-[4px]"
@@ -203,14 +193,13 @@ export function CalzadoPanelView({
                         {row.descripcionColor}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <div className="inline-flex items-center justify-center gap-1.5">
-                          <span
-                            className={`w-2 h-2 rounded-full shrink-0 ${stockDotClass(row.stock_actual)}`}
-                            title={stockTitle(row.stock_actual)}
-                          />
-                          <span className="text-[13px] font-bold text-[#251721]">
-                            {row.descripcionTalla}
-                          </span>
+                        <div
+                          className={`inline-flex min-w-[64px] flex-col items-center justify-center rounded-lg px-2 py-1 text-[11px] font-semibold ${
+                            STOCK_STATUS_CONFIG[getStockStatus(row.stock_actual)].badgeClass
+                          }`}
+                          title={STOCK_STATUS_CONFIG[getStockStatus(row.stock_actual)].label}
+                        >
+                          <span className="leading-tight">T.{row.descripcionTalla}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center text-lg font-extrabold text-[#984258]">
@@ -227,74 +216,47 @@ export function CalzadoPanelView({
                         S/ {Number(row.precio_venta_par).toFixed(2)}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {isSelectorMode ? (
-                          <button
-                            type="button"
-                            onClick={() => handleVender(row)}
-                            className="inline-flex items-center gap-1 rounded-full bg-[#984258] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#7A2E45]"
-                          >
-                            <ShoppingCart size={13} />
-                            Agregar a la venta
-                          </button>
-                        ) : deletingId === row.id_producto ? (
-                          <div className="flex justify-end items-center gap-1 text-[12px] text-[#EF4444] font-semibold">
-                            <span>¿Eliminar?</span>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteConfirm(row.id_producto)}
-                              className="p-1.5 text-white bg-[#EF4444] rounded-full hover:bg-[#DC2626] transition-colors cursor-pointer"
-                              aria-label="Confirmar eliminación"
-                            >
-                              <Check size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDeletingId(null)}
-                              className="p-1.5 text-[#544245] border border-[#E5E7EB] rounded-full hover:bg-[#FFF0F6] transition-colors cursor-pointer"
-                              aria-label="Cancelar eliminación"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex justify-end items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleVender(row)}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#984258] text-white text-[11px] font-semibold hover:bg-[#7A2E45] transition-colors cursor-pointer border-0"
-                              aria-label={venderLabel}
-                            >
-                              <ShoppingCart size={13} />
-                              {venderLabel}
-                            </button>
-                            {canMutate && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleEditProduct(row)}
-                                  className="p-2 text-[#984258] hover:bg-[#984258]/5 rounded-full transition-colors cursor-pointer"
-                                  aria-label="Editar"
-                                >
-                                  <Pencil size={16} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setDeletingId(row.id_producto)}
-                                  className="p-2 text-[#867275] hover:text-[#EF4444] hover:bg-[#EF4444]/5 rounded-full transition-colors cursor-pointer"
-                                  aria-label="Eliminar"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleVender(row)}
+                          className="inline-flex items-center gap-1 rounded-full bg-[#984258] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#7A2E45]"
+                          aria-label={venderLabel}
+                        >
+                          <ShoppingCart size={13} />
+                          {isSelectorMode ? "Agregar a la venta" : venderLabel}
+                        </button>
                       </td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
+            <div className="mt-2 flex items-center justify-between px-1 text-[11px] text-[#544245]">
+              <span>
+                Mostrando {paginatedProducts.length} de {products.length} productos
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={prevPage}
+                  disabled={page <= 1}
+                  className="rounded-full border border-[#E5E7EB] px-2 py-0.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#F9F4F6]"
+                >
+                  Anterior
+                </button>
+                <span>
+                  {page} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={nextPage}
+                  disabled={page >= totalPages}
+                  className="rounded-full border border-[#E5E7EB] px-2 py-0.5 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#F9F4F6]"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -400,6 +362,7 @@ export function CalzadoPanelView({
         open={modalMode !== null}
         onClose={() => setModalMode(null)}
         onSubmit={handleAddSubmit}
+        onCreated={handleProductCreated}
         editingRow={modalMode?.mode === "edit" ? modalMode.row : undefined}
       />
     </section>

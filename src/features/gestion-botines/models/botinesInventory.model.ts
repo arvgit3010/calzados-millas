@@ -1,10 +1,3 @@
-// import type { StockRow } from "@/shared/panel";
-// import { PRODUCT_PLACEHOLDER_IMAGE } from "@/shared/panel/constants";
-
-/** Datos mock del inventario de botines.
- *  totalPairs se mantiene manualmente — si se edita sizeN.qty,
- *  debe actualizarse también totalPairs para mantener consistencia.
- *  size3.qty = 0 indica que esa talla no está disponible para el producto. */
 export type GetAllBotinesInventoryResponse = {
   id_producto: number;
   idModelo: number;
@@ -23,10 +16,8 @@ export type GetAllBotinesInventoryResponse = {
   usuario_id: number;
   fecha_registro: string;
   fecha_actualizacion: string;
-  /** Opcional: el API aún no lo envía; la grilla lo muestra con placeholder. */
   imagen?: string | null;
 };
-
 
 export type BotinColorApi = {
   id_color: number;
@@ -34,23 +25,75 @@ export type BotinColorApi = {
   activo: boolean;
 };
 
- export  type ModelBotin= {
-  id_modelo: number;
+export type ModelBotin = {
+  id_model: number;
   codigo_model: string;
-  descModelBotines:string;
-  nombre_model:string;
+  descModelBotines: string;
+  nombre_model: string;
 };
 
- export type ModelTalla= {
+export type ModelTalla = {
   id_talla: number;
   desc_talla: string;
- }
+};
 
-   export  type  ModelSeachParams = {
-    codigo: string;
-    modelo: string;
-    talla: string;
-    sku: string
-   };
+export type ModelSeachParams = {
+  inputDescriptionSearch: string;
+};
 
+export type ModelRango = {
+  id_rango: number;
+  descripcion: string;
+};
 
+export type ModelTipoLote = {
+  id_tipo: number;
+  descripcion: string;
+};
+
+/** Payload para crear un nuevo producto/lote de botines. */
+export type CrearBotinProductoRequest = {
+  idModelo: number;
+  idColor: number;
+  idTipoLote: number;
+  idRango: number;
+  precioCompraPar: number;
+  precioVentaPar: number;
+  cantidadLotes: number;
+  detalleTallas: {
+    idTalla: number;
+    cantidad: number;
+  }[];
+};
+
+export type ModelparamsConsultaDatosModelosTallas = {
+  id: number;
+  modelo: string;
+};
+
+export type DetalleModeloStockItem = {
+  idProducto: number;
+  idModelo: number;
+  codigoModelo: string;
+  nombreModelo: string;
+  idColor: number;
+  descripcionColor: string;
+  descripcionTalla: string;
+  sku: string;
+  stock_actual: number;
+  observacion: string;
+};
+
+export type SaleStockVariant = DetalleModeloStockItem;
+
+export type ConsultaDatosModelosTallasResponse = GetAllBotinesInventoryResponse & {
+  DetalleModeloStock: DetalleModeloStockItem[];
+};
+
+export type GroupedStockDetails = Record<
+  number,
+  {
+    colorName: string;
+    sizes: Record<string, SaleStockVariant>;
+  }
+>;

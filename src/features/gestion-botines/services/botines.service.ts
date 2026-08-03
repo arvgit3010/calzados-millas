@@ -1,4 +1,3 @@
-// import type { StockRow } from "@/shared/panel";
 import { apiClient, validateApiResponse } from "@/core";
 import {
   type BotinColorApi,
@@ -6,41 +5,163 @@ import {
   type ModelBotin,
   type ModelSeachParams,
   type ModelTalla,
+  type ModelRango,
+  type ModelTipoLote,
+  type CrearBotinProductoRequest,
+  type ModelparamsConsultaDatosModelosTallas,
+  type ConsultaDatosModelosTallasResponse,
 } from "../models/botinesInventory.model";
 
+const INVENTORY_CACHE_TTL_MS = 15_000;
+const LOOKUP_CACHE_TTL_MS = 5 * 60_000;
+let inventoryCache:
+  | { data: GetAllBotinesInventoryResponse[]; expiresAt: number }
+  | null = null;
+let inventoryRequest: Promise<GetAllBotinesInventoryResponse[]> | null = null;
+const stockDetailCache = new Map<
+  string,
+  { data: ConsultaDatosModelosTallasResponse; expiresAt: number }
+>();
+const stockDetailRequests = new Map<
+  string,
+  Promise<ConsultaDatosModelosTallasResponse>
+>();
+const lookupCache = new Map<
+  string,
+  { data: unknown; expiresAt: number }
+>();
+const lookupRequests = new Map<string, Promise<unknown>>();
 
+async function getCachedLookup<T>(url: string): Promise<T> {
+  const cached = lookupCache.get(url);
+  if (cached && cached.expiresAt > Date.now()) return cached.data as T;
 
-/** Servicio de acceso a datos del inventario de botines.
- *  Actualmente retorna datos mock sincrónicos.
- *  Diseñado como punto de reemplazo: cuando exista un backend real,
- *  cambiar a async (Promise<StockRow[]>) y actualizar el hook. */
-// export function getBotinesInventory(): StockRow[] {
-//   return botinesInventory;
-// }
+  const pending = lookupRequests.get(url);
+  if (pending) return pending as Promise<T>;
+
+  const request = apiClient
+    .get(url)
+    .then(({ data }) => {
+      const response = validateApiResponse<T>(data);
+      lookupCache.set(url, {
+        data: response,
+        expiresAt: Date.now() + LOOKUP_CACHE_TTL_MS,
+      });
+      return response;
+    })
+    .finally(() => {
+      lookupRequests.delete(url);
+    });
+  lookupRequests.set(url, request);
+  return request;
+}
+
+export function invalidateBotinesInventoryCache(): void {
+  inventoryCache = null;
+  stockDetailCache.clear();
+}
 
 /** GET colores disponibles de botines desde el API. */
-export async function getBotinesColores(): Promise<BotinColorApi[]> {
-  const { data } = await apiClient.get("api/botines-milas/get-colores-bottines");
-  return validateApiResponse<BotinColorApi[]>(data);
+export async function getBotinesColoresApi(): Promise<BotinColorApi[]> {
+  return getCachedLookup<BotinColorApi[]>(
+    "api/botines-milas/get-colores-bottines",
+  );
 }
 
-export async function getBotinesModelos(): Promise<ModelBotin[]> {
-  const { data } = await apiClient.get("api/botines-milas/get-modelos-bottines");
-  return validateApiResponse<ModelBotin[]>(data);
+/** GET modelos de botines desde el API. */
+export async function getBotinesModelosApi(): Promise<ModelBotin[]> {
+  return getCachedLookup<ModelBotin[]>(
+    "api/botines-milas/get-modelos-bottines",
+  );
 }
 
-export async function getBotinesTallas(): Promise<ModelTalla[]> {
-  const { data } = await apiClient.get("api/botines-milas/get-tallas-bottines");
-  return validateApiResponse<ModelTalla[]>(data);
+/** GET tallas disponibles de botines desde el API. */
+export async function getBotinesTallasApi(): Promise<ModelTalla[]> {
+  return getCachedLookup<ModelTalla[]>(
+    "api/botines-milas/get-tallas-bottines",
+  );
 }
 
-export async function getBotinesInventory(): Promise<GetAllBotinesInventoryResponse[]> {
-  const { data } = await apiClient.get("api/botines-milas/get-productos");
-  return validateApiResponse<GetAllBotinesInventoryResponse[]>(data);
+/** GET rangos (packs 5-8, 5-9, OTRO, ...) desde el API. */
+export async function getBotinesRangosOptionsApi(): Promise<ModelRango[]> {
+  return getCachedLookup<ModelRango[]>("api/botines-milas/get-rango");
+}
+
+/** GET tipos de lote (docena, media docena, ...) desde el API. */
+export async function getBotinesTiposLoteOptionsApi(): Promise<ModelTipoLote[]> {
+  return getCachedLookup<ModelTipoLote[]>("api/botines-milas/get-tipo-lote");
+}
+
+/** GET inventario completo de botines para la grilla. */
+export async function getBotinesInventoryProducts(): Promise<GetAllBotinesInventoryResponse[]> {
+  if (inventoryCache && inventoryCache.expiresAt > Date.now()) {
+    return inventoryCache.data;
+  }
+  if (inventoryRequest) return inventoryRequest;
+
+  inventoryRequest = apiClient
+    .get("api/botines-milas/get-productos")
+    .then(({ data }) => {
+      const products =
+        validateApiResponse<GetAllBotinesInventoryResponse[]>(data);
+      inventoryCache = {
+        data: products,
+        expiresAt: Date.now() + INVENTORY_CACHE_TTL_MS,
+      };
+      return products;
+    })
+    .finally(() => {
+      inventoryRequest = null;
+    });
+
+  return inventoryRequest;
 }
 
 /** Busca productos de botines usando el endpoint search-producto del API. */
-export async function searchBotinesInventory(search: ModelSeachParams): Promise<GetAllBotinesInventoryResponse[]> {
-  const { data } = await apiClient.get("api/botines-milas/search-producto", {params: search});
+export async function searchBotinesInventoryProduct(
+  search: ModelSeachParams,
+): Promise<GetAllBotinesInventoryResponse[]> {
+  const { data } = await apiClient.get("api/botines-milas/search-producto", {
+    params: search,
+  });
   return validateApiResponse<GetAllBotinesInventoryResponse[]>(data);
+}
+
+/** Crea un nuevo producto / lote de compra de botines en el backend. */
+export async function createBotinProductoApiInventory(payload: CrearBotinProductoRequest): Promise<void> {
+  const { data } = await apiClient.post("api/botines-milas/create-producto", payload);
+  // Solo validamos que el envelope ApiResponse indique éxito.
+  const response = validateApiResponse<void>(data);
+  invalidateBotinesInventoryCache();
+  return response;
+}
+
+
+/** Consulta las tallas disponibles para un modelo. */
+export async function consultaDatosModelosTallasApi(
+  paramsValue: ModelparamsConsultaDatosModelosTallas,
+): Promise<ConsultaDatosModelosTallasResponse> {
+  const cacheKey = `${paramsValue.id}:${paramsValue.modelo.toUpperCase()}`;
+  const cached = stockDetailCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+  const pending = stockDetailRequests.get(cacheKey);
+  if (pending) return pending;
+
+  const request = apiClient
+    .get("api/botines-milas/get-producto-by-id", { params: paramsValue })
+    .then(({ data }) => {
+      const response =
+        validateApiResponse<ConsultaDatosModelosTallasResponse>(data);
+      stockDetailCache.set(cacheKey, {
+        data: response,
+        expiresAt: Date.now() + INVENTORY_CACHE_TTL_MS,
+      });
+      return response;
+    })
+    .finally(() => {
+      stockDetailRequests.delete(cacheKey);
+    });
+  stockDetailRequests.set(cacheKey, request);
+  return request;
 }

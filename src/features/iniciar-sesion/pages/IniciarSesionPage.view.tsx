@@ -1,4 +1,4 @@
-import { ShoppingBag, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { ShoppingBag, Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/core";
@@ -12,6 +12,9 @@ type Props = {
   showPassword: boolean;
   onTogglePassword: () => void;
   onSubmit: () => void;
+  showAdminModal: boolean;
+  handleGoToEcommerce: () => void;
+  handleGoToDashboard: () => void;
 };
 
 export function IniciarSesionPageView({
@@ -22,6 +25,9 @@ export function IniciarSesionPageView({
   showPassword,
   onTogglePassword,
   onSubmit,
+  showAdminModal,
+  handleGoToEcommerce,
+  handleGoToDashboard,
 }: Props) {
   return (
     <>
@@ -130,7 +136,7 @@ export function IniciarSesionPageView({
               </div>
 
               {/* ── Remember Me ── */}
-              <div className="flex items-center px-1">
+              {/* <div className="flex items-center px-1">
                 <input
                   id="login-remember"
                   type="checkbox"
@@ -143,7 +149,7 @@ export function IniciarSesionPageView({
                 >
                   Mantener sesión iniciada
                 </label>
-              </div>
+              </div> */}
 
               {/* ── Action Buttons ── */}
               <div className="space-y-2 pt-2">
@@ -152,8 +158,17 @@ export function IniciarSesionPageView({
                   disabled={isSubmitting}
                   className="login-transition flex h-[56px] w-full items-center justify-center gap-[12px] rounded-xl bg-[#E8839A] font-semibold text-white shadow-lg shadow-[#E8839A]/20 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#E8839A]/30 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <span>{isSubmitting ? "Entrando..." : "Entrar"}</span>
-                  {!isSubmitting && <ArrowRight size={20} />}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin" />
+                      <span>Entrando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Entrar</span>
+                      <ArrowRight size={20} />
+                    </>
+                  )}
                 </button>
 
                 {/* ── Social Divider ── */}
@@ -226,6 +241,35 @@ export function IniciarSesionPageView({
 
         </div>
       </main>
+
+      {showAdminModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="mb-2 text-lg font-semibold text-[#251721]">
+              ¿Dónde quieres ir?
+            </h2>
+            <p className="mb-4 text-sm text-[#251721]/70">
+              Tu usuario es administrador. Elige a qué sección acceder.
+            </p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleGoToEcommerce}
+                className="w-full rounded-xl bg-[#E8839A] px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition"
+              >
+                Ir a E‑commerce
+              </button>
+              <button
+                type="button"
+                onClick={handleGoToDashboard}
+                className="w-full rounded-xl border border-[#251721]/10 px-4 py-2.5 text-sm font-semibold text-[#251721] bg-white hover:bg-[#f9f2f4] transition"
+              >
+                Ir al Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

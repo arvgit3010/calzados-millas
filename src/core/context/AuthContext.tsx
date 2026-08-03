@@ -27,7 +27,7 @@ function authReducer(_state: AuthState, action: AuthAction): AuthState {
 /* ─── Context ──────────────────────────────────────── */
 
 export interface AuthContextValue extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => void;
 }
 
@@ -61,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("authUser", JSON.stringify(user));
     dispatch({ type: "LOGIN_SUCCESS", user });
+    return user;
   }, []);
 
   const logout = useCallback(() => {

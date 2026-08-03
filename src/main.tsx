@@ -1,10 +1,10 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { PrimeReactProvider } from "@primereact/core";
+import { Toaster } from "react-hot-toast";
 import { AppRouter } from "@/app/AppRouter";
 import { AuthProvider } from "@/core/context";
-import { primeReactConfig } from "@/core/config/primereact";
+import { BotinesSocketProvider } from "@/core/socket";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./style.css";
 
@@ -13,11 +13,20 @@ if (root) {
   createRoot(root).render(
     <React.StrictMode>
       <AuthProvider>
-        <PrimeReactProvider {...primeReactConfig}>
+        <BotinesSocketProvider>
           <BrowserRouter>
             <AppRouter />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  fontSize: "14px",
+                  borderRadius: "12px",
+                },
+              }}
+            />
           </BrowserRouter>
-        </PrimeReactProvider>
+        </BotinesSocketProvider>
       </AuthProvider>
     </React.StrictMode>
   );
