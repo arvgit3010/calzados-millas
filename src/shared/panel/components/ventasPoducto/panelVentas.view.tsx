@@ -160,10 +160,10 @@ export function PanelVentasView({
   };
 
   const onSubmit = async (data: VentaFormData) => {
-    // if (!user?.id) {
-    //   toast.error("No se encontró el usuario autenticado");
-    //   return;
-    // }
+    if (!user?.id) {
+      toast.error("No se encontró el usuario autenticado");
+      return;
+    }
     if (items.length === 0) {
       toast.error("Agrega al menos un producto a la venta");
       return;

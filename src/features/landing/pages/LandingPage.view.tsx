@@ -1,7 +1,15 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search } from "lucide-react";
+import { motion } from "motion/react";
+import { ChevronDown, Search } from "lucide-react";
 import { InstagramIcon, TikTokIcon, WhatsAppIcon } from "../components/SocialIcons";
+import { LandingLinkButton, LandingIconButton } from "../components/LandingButtons";
+import { LandingProductShowcase } from "../components/LandingProductShowcase";
+import { LandingScrollSections } from "../components/LandingScrollSections";
+import { MilasLogo } from "../components/MilasLogo";
+import { WhatsAppTransition } from "../components/WhatsAppTransition";
+import { WhatsAppTrigger } from "../components/WhatsAppTrigger";
+import { useWhatsAppTransition } from "../hooks/useWhatsAppTransition";
 import type { LandingSocialLinks } from "../types";
 import { ROUTES } from "@/core";
 
@@ -9,19 +17,24 @@ type LandingPageViewProps = {
   socialLinks: LandingSocialLinks;
 };
 
+const heroText = {
+  hidden: { opacity: 0, y: 36 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: 0.2 + i * 0.12, duration: 0.85, ease: [0.22, 1, 0.36, 1] as const },
+  }),
+};
+
 export function LandingPageView({ socialLinks }: LandingPageViewProps) {
+  const { isActive, triggerWhatsApp, transitionMs } = useWhatsAppTransition();
+
   useEffect(() => {
     const navbar = document.getElementById("navbar");
     if (!navbar) return;
 
     const handleScroll = () => {
-      if (window.scrollY > 50) {
-        navbar.classList.add("py-2");
-        navbar.classList.remove("py-4");
-      } else {
-        navbar.classList.add("py-4");
-        navbar.classList.remove("py-2");
-      }
+      navbar.classList.toggle("landing-nav--scrolled", window.scrollY > 40);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -29,156 +42,123 @@ export function LandingPageView({ socialLinks }: LandingPageViewProps) {
   }, []);
 
   return (
-    <main className="bg-[#fcf9f7] text-[#2a1e22] min-h-screen selection:bg-[#fcebeb] selection:text-[#2a1e22]">
+    <main className="landing-milas min-h-screen bg-[#fcf9f7] text-[#2a1e22] selection:bg-[#fcebeb] selection:text-[#2a1e22]">
+      <WhatsAppTransition active={isActive} durationMs={transitionMs} />
 
-      {/*═════════════════════════════════════════════════════
-      Fondo de encabezado 
-      ═════════════════════════════════════════════════════*/}
+      <div className="fixed inset-0 -z-10 pointer-events-none golden-thread-bg opacity-60" />
+      <div className="fixed inset-0 -z-10 pointer-events-none landing-milas-gradient" />
 
-      <div className="fixed inset-0 pointer-events-none -z-10 golden-thread-bg" />
-
-      {/*═════════════════════════════════════════════════════ 
-      Menu de encabezado 
-      ═════════════════════════════════════════════════════*/}
-
-      <header id="navbar" className="bg-[#fcf9f7]/70 backdrop-blur-md sticky top-0 z-50 border-b border-[rgba(168,124,124,0.2)] shadow-sm transition-all duration-300 landing-nav">
-        <div className="flex justify-between items-center px-8 max-w-[1152px] mx-auto py-4">
-          
-          {/*══════════════════ 
-          Iconos - Redes sociales 
-          ══════════════════*/}
-
-          <div className="hidden md:flex items-center gap-6">
-            <a href={socialLinks.whatsapp} target="_blank" rel="noopener noreferrer" className="text-[#5a4d52] hover:text-[#a87c7c] transition-all" aria-label="WhatsApp">
-              <WhatsAppIcon size={20} />
-            </a>
-            <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="text-[#5a4d52] hover:text-[#a87c7c] transition-all" aria-label="Instagram">
-              <InstagramIcon size={20} />
-            </a>
-            <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="text-[#5a4d52] hover:text-[#a87c7c] transition-all" aria-label="TikTok">
-              <TikTokIcon size={20} />
-            </a>
+      <header
+        id="navbar"
+        className="landing-nav landing-nav--milas sticky top-0 z-50 w-full border-b border-[rgba(168,124,124,0.15)] transition-all duration-500"
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 md:px-10">
+          <div className="flex items-center gap-6">
+            <Link to={ROUTES.home} className="no-underline">
+              <MilasLogo compact />
+            </Link>
+            <div className="hidden items-center gap-5 md:flex">
+              <WhatsAppTrigger
+                whatsappUrl={socialLinks.whatsapp}
+                onTrigger={triggerWhatsApp}
+                className="milas-icon-btn text-[#867275] transition hover:text-[#984258] cursor-pointer"
+                aria-label="WhatsApp"
+              >
+                <WhatsAppIcon size={18} />
+              </WhatsAppTrigger>
+              <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="text-[#867275] transition hover:text-[#984258]" aria-label="Instagram">
+                <InstagramIcon size={18} />
+              </a>
+              <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="text-[#867275] transition hover:text-[#984258]" aria-label="TikTok">
+                <TikTokIcon size={18} />
+              </a>
+            </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <nav className="hidden lg:flex items-center gap-8 mr-4">
-              <a href="#coleccion" className="font-['Montserrat',sans-serif] text-[10px] text-[#2a1e22] border-b border-[#2a1e22] pb-1 tracking-[0.3em] font-semibold uppercase transition-all">Colección</a>
-              <a href="#somos" className="font-['Montserrat',sans-serif] text-[10px] text-[#5a4d52] hover:text-[#a87c7c] tracking-[0.3em] font-semibold uppercase transition-all">Somos</a>
-              <Link to={ROUTES.iniciarSession} className="font-['Montserrat',sans-serif] text-[10px] text-[#5a4d52] hover:text-[#a87c7c] tracking-[0.3em] font-semibold uppercase transition-all">Login</Link>
-            </nav>
+          <nav className="hidden items-center gap-8 lg:flex">
+            <a href="#coleccion" className="landing-nav-link landing-nav-link--active">Colección</a>
+            <a href="#somos" className="landing-nav-link">Somos</a>
+            <Link to={ROUTES.iniciarSession} className="landing-nav-link">Login</Link>
+          </nav>
 
-            {/* ═══════════════════════════════════════════════════════════════
-               BOTONES DEL NAVBAR — Guía de ajustes visuales
-               
-               bg-[color]        → Fondo del botón.   Ej: bg-[#2a1e22], bg-[#a87c7c]
-               hover:bg-[color]  → Color al pasar mouse. hover:bg-[#a87c7c], hover:bg-[#2a1e22]
-               text-[color]      → Color del texto.   text-white, text-[#2a1e22]
-               px-? py-?         → Padding. px-6 py-2 = 24px horiz, 8px vert. px-8 py-3 = más grande
-               rounded-?         → Borde. rounded-full = pastilla, rounded-xl = esquina suave,
-                                    rounded-lg = poco, rounded-none = recto
-               text-?            → Tamaño fuente. text-xs=12px, text-[10px]=custom, text-sm=14px
-               font-?            → Peso. font-semibold=600, font-bold=700, font-medium=500
-               tracking-?        → Espaciado letras. tracking-widest, tracking-wide, tracking-[0.15em]
-               shadow-?          → Sombra. shadow-md, shadow-lg, shadow-xl, shadow-none
-               transition-?      → Animación. transition-colors=solo colores, transition-all=todo
-               
-               Para cambiar un valor, reemplazar la clase Tailwind o el hex entre corchetes.
-               ═══════════════════════════════════════════════════════════════ */}
-
-            <div className="flex items-center gap-4">
-              <button className="flex items-center justify-center text-[#2a1e22]" aria-label="Buscar"><Search size={20} /></button>
-              <a href={socialLinks.whatsapp} target="_blank" rel="noopener noreferrer"
-                className={
-                  "bg-[#2a1e22]" +           /* Fondo: marrón oscuro. Cambiar hex por otro color */
-                  " text-white" +             /* Texto blanco. text-[#color] para tono personalizado */
-                  " font-['Montserrat',sans-serif]" +
-                  " px-6 py-2" +             /* Padding. px-8 py-3 = más grande, px-4 py-1.5 = más chico */
-                  " rounded-full" +          /* Borde pastilla. rounded-xl = esquina suave */
-                  " text-[10px]" +           /* Tamaño. text-xs=12, text-sm=14, text-[11px]=custom */
-                  " hover:bg-[#a87c7c]" +    /* Hover: rosa tierra. Cambiar hex por otro tono */
-                  " transition-colors" +     /* transition-all = anima sombra/posición también */
-                  " uppercase" +
-                  " tracking-widest" +       /* tracking-wide = menos espacio */
-                  " font-semibold" +          /* font-bold = negrita, font-medium = normal */
-                  ""
-                }
-              >
-                Consulta Ahora!
-              </a>
-              <Link to={ROUTES.ecommerce}
-                className={
-                  "bg-[#2a1e22]" +           /* Fondo: marrón oscuro */
-                  " text-white" +
-                  " font-['Montserrat',sans-serif]" +
-                  " px-6 py-2" +
-                  " rounded-full" +
-                  " text-[10px]" +
-                  " hover:bg-[#a87c7c]" +
-                  " transition-colors" +
-                  " uppercase" +
-                  " tracking-widest" +
-                  " font-semibold" +
-                  " shadow-md" +              /* Sombra suave. shadow-lg=media, shadow-xl=grande, shadow-none=sin */
-                  " hover:shadow-xl"          /* Sombra crece al pasar mouse */
-                }
-              >
-                COMPRA AQUÍ
-              </Link>
-            </div>
+          <div className="flex items-center gap-3">
+            <LandingIconButton className="text-[#867275] hover:text-[#984258]" aria-label="Buscar">
+              <Search size={18} />
+            </LandingIconButton>
+            <WhatsAppTrigger
+              whatsappUrl={socialLinks.whatsapp}
+              onTrigger={triggerWhatsApp}
+              className="milas-btn milas-btn--ghost hidden px-5 py-2.5 sm:inline-flex cursor-pointer"
+            >
+              Consulta ahora
+            </WhatsAppTrigger>
+            <LandingLinkButton href={ROUTES.ecommerce} variant="primary" className="px-5 py-2.5">
+              Compra aquí
+            </LandingLinkButton>
           </div>
         </div>
       </header>
 
-      {/*═════════════════════════════════════════════════════
-       Seccion - Hero 
-       ═════════════════════════════════════════════════════*/}
+      <section className="relative overflow-hidden px-6 pb-16 pt-10 md:px-10 md:pb-20 md:pt-14">
+        <div className="mx-auto grid max-w-7xl items-center gap-8 lg:grid-cols-[1fr_1.05fr] lg:gap-4">
+          <motion.div initial="hidden" animate="visible" className="text-center lg:text-left">
+            <motion.p variants={heroText} custom={0} className="mb-4 text-[11px] font-semibold uppercase tracking-[0.4em] text-[#a87c7c]">
+              Tienda online · Nueva temporada
+            </motion.p>
+            <motion.h1 variants={heroText} custom={1} className="font-display text-[clamp(3rem,10vw,5.5rem)] leading-[0.92] text-[#2a1e22]">
+              <span className="block text-[clamp(1rem,2.5vw,1.25rem)] not-italic font-normal tracking-[0.2em] text-[#867275]">
+                Calzados
+              </span>
+              <span className="block italic">Milas</span>
+            </motion.h1>
+            <motion.p variants={heroText} custom={2} className="mx-auto mt-6 max-w-md text-sm leading-relaxed text-[#867275] md:text-base lg:mx-0">
+              Elegancia en cada paso. Botines y calzado premium diseñados para
+              quienes aman destacar con estilo.
+            </motion.p>
+            <motion.div variants={heroText} custom={3} className="mt-10 flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
+              <LandingLinkButton href={ROUTES.ecommerce} variant="primary" className="min-w-[200px] px-8 py-3.5">
+                Ver colección
+              </LandingLinkButton>
+              <LandingLinkButton href="#somos" variant="secondary" className="min-w-[200px] px-8 py-3.5">
+                Nuestra historia
+              </LandingLinkButton>
+            </motion.div>
+            <motion.div variants={heroText} custom={4} className="mt-4 flex justify-center lg:justify-start">
+              <WhatsAppTrigger
+                whatsappUrl={socialLinks.whatsapp}
+                onTrigger={triggerWhatsApp}
+                className="milas-btn milas-btn--whatsapp px-8 py-3.5 cursor-pointer"
+                icon={<WhatsAppIcon size={15} />}
+              >
+                Consulta por WhatsApp
+              </WhatsAppTrigger>
+            </motion.div>
+          </motion.div>
 
-      <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
-       
-        {/*══════════════════
-         Editorial background — CSS gradients + texture 
-         ══════════════════*/}
-
-        <div className="editorial-hero-bg absolute inset-0 z-0" />
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.35)_0%,transparent_70%)]" />
-          <div className="absolute bottom-0 right-0 w-[500px] h-[400px] bg-[radial-gradient(ellipse_at_center,rgba(168,124,124,0.06)_0%,transparent_60%)]" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[350px] bg-[radial-gradient(ellipse_at_center,rgba(200,175,165,0.04)_0%,transparent_60%)]" />
+          <LandingProductShowcase />
         </div>
 
-        {/*══════════════════
-         Formas orgánicas 
-         ══════════════════*/}
-
-        <div className="absolute inset-0 pointer-events-none opacity-30">
-          <div className="absolute top-1/4 -left-20 w-96 h-96 organic-shape border border-[#a87c7c]/20 rotate-12" />
-          <div className="absolute bottom-1/4 -right-20 w-[30rem] h-[30rem] organic-shape border border-[#a87c7c]/20 -rotate-12" />
-        </div>
-    
-
-        {/*══════════════════
-         Tarjeta con efecto Glass
-         ══════════════════*/}
-
-        <div className="relative z-10 max-w-[1152px] mx-auto px-8 text-center">
-          <div className="glass-card px-10 py-12 inline-block rounded-3xl animate-hero-fade">
-            <p className="font-['Montserrat',sans-serif] text-[14px] text-[#a87c7c] mb-4 uppercase tracking-[0.25em] font-light">
-              Nueva Temporada
-            </p>
-            <h1 className="font-display text-[clamp(72px,10vw,96px)] text-[#2a1e22] leading-[0.9] mb-8">
-              <i>Milas</i>
-            </h1>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="#coleccion" className="bg-[#2a1e22] text-white font-['Montserrat',sans-serif] px-10 py-4 rounded-full text-xs hover:bg-[#a87c7c] transition-all uppercase tracking-widest font-semibold shadow-xl">
-                Ver Colección
-              </a>
-              <a href="#somos" className="bg-transparent border border-[#a87c7c] text-[#2a1e22] font-['Montserrat',sans-serif] px-10 py-4 rounded-full text-xs hover:bg-[#f9f2f2] transition-all uppercase tracking-widest font-semibold">
-                Nuestra Historia
-              </a>
-            </div>
-          </div>
-        </div>
+        <motion.a
+          href="#coleccion"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.1, duration: 0.8 }}
+          className="absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-[#867275] transition hover:text-[#984258] lg:bottom-8"
+          aria-label="Desplazarse hacia abajo"
+        >
+          <span className="text-[9px] font-semibold uppercase tracking-[0.35em]">Explorar</span>
+          <motion.div animate={{ y: [0, 5, 0] }} transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}>
+            <ChevronDown size={18} />
+          </motion.div>
+        </motion.a>
       </section>
+
+      <LandingScrollSections onWhatsAppClick={triggerWhatsApp} whatsappUrl={socialLinks.whatsapp} />
+
+      <footer className="border-t border-[#ece3de] bg-[#fcf9f7] px-6 py-12 text-center">
+        <MilasLogo />
+        <p className="mt-4 text-xs text-[#867275]">&copy; 2026. Todos los derechos reservados.</p>
+      </footer>
     </main>
   );
 }

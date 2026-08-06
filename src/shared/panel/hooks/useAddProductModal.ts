@@ -132,6 +132,7 @@ export function useAddProductModal({open,onClose,onCreated,editingRow}: UseAddPr
   const rangoId = watch("rangoId");
   const modelo = watch("modelo");
   const tipoLoteId = watch("tipoLoteId");
+  const selectedTallas = watch("tallas") ?? [];
   // const cantidadOtro = watch("cantidadOtro");
 
   // const resumenQty = useMemo(() => {
@@ -240,9 +241,8 @@ export function useAddProductModal({open,onClose,onCreated,editingRow}: UseAddPr
         }),
       };
 
-      console.log("Trama create-producto:", payload);
       await createBotinProductoApiInventory(payload);
-      await onCreated?.();
+      onCreated?.();
       toast.success("Producto creado correctamente");
       onClose();
     } catch (error) {
@@ -301,6 +301,7 @@ export function useAddProductModal({open,onClose,onCreated,editingRow}: UseAddPr
     tallas: tallas || [],
     rangos: rangos || [],
     tiposLote: tiposLote || [],
+    selectedTallas,
     onSubmitForm: OnSubmitForm,
     onInvalidForm,
   };

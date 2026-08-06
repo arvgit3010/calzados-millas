@@ -26,7 +26,7 @@ export interface LoginRequest {
 }
 
 export interface AuthUser {
-  id: number;
+  id: string;
   email: string;
   name?: string;
   role?: string;

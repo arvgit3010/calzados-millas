@@ -6,6 +6,8 @@ import { GestionSandaliasPage } from "@/features/gestion-sandalias";
 import { GestionVentasPage } from "@/features/gestion-ventas";
 import { IniciarSesionPage } from "@/features/iniciar-sesion";
 import { LandingPage } from "@/features/landing";
+import { AdminRoute } from "./AdminRoute";
+import { ProtectedRoute } from "./ProtectedRoute";
 
 const EcommercePage = lazy(() =>
   import("@/features/ecommerce").then((m) => ({ default: m.EcommercePage }))
@@ -16,9 +18,12 @@ export function AppRouter() {
     <Routes>
       <Route path={ROUTES.home} element={<LandingPage />} />
       <Route path={ROUTES.iniciarSession} element={<IniciarSesionPage />} />
-      <Route path={ROUTES.ecommerce} element={<EcommercePage />} />
 
-      <Route>
+      <Route element={<ProtectedRoute />}>
+        <Route path={ROUTES.ecommerce} element={<EcommercePage />} />
+      </Route>
+
+      <Route element={<AdminRoute />}>
         <Route path={ROUTES.gestionSandalias} element={<GestionSandaliasPage />} />
         <Route path={ROUTES.gestionBotines} element={<GestionBotinesPage />} />
         <Route path={ROUTES.gestionVentas} element={<GestionVentasPage />} />

@@ -129,8 +129,14 @@ export function CalzadoPanelView({
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E5E7EB]">
-                {loading ? (
+              <tbody
+                className={`divide-y divide-[#E5E7EB] ${
+                  loading && products.length > 0
+                    ? "opacity-60 pointer-events-none"
+                    : ""
+                }`}
+              >
+                {loading && products.length === 0 ? (
                   <tr>
                     <td
                       colSpan={
@@ -168,6 +174,7 @@ export function CalzadoPanelView({
                           <img
                             src={row.imagen}
                             alt={`${row.nombreModelo} ${row.descripcionColor}`}
+                            loading="lazy"
                             className="mx-auto w-11 h-11 rounded-lg border border-[#E5E7EB] object-cover bg-white"
                           />
                         ) : (
@@ -358,13 +365,15 @@ export function CalzadoPanelView({
         </div>
       ) : null}
 
-      <AddProductModal
-        open={modalMode !== null}
-        onClose={() => setModalMode(null)}
-        onSubmit={handleAddSubmit}
-        onCreated={handleProductCreated}
-        editingRow={modalMode?.mode === "edit" ? modalMode.row : undefined}
-      />
+      {modalMode !== null ? (
+        <AddProductModal
+          open
+          onClose={() => setModalMode(null)}
+          onSubmit={handleAddSubmit}
+          onCreated={handleProductCreated}
+          editingRow={modalMode.mode === "edit" ? modalMode.row : undefined}
+        />
+      ) : null}
     </section>
   );
 }

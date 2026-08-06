@@ -12,7 +12,6 @@ import type {
 } from "@/features/gestion-botines/models/botinesInventory.model";
 import {
   consultaDatosModelosTallasApi,
-  invalidateBotinesInventoryCache,
 } from "@/features/gestion-botines/services/botines.service";
 
 export type GestionVentasLocationState = {
@@ -40,7 +39,7 @@ export function useGestionVentasPage() {
           .map<SaleStockVariant>((item) => item);
 
         const newGroupedStock: GroupedStockDetails = fetchedStockDetails.reduce(
-          (acc, item) => {
+          (acc: GroupedStockDetails, item: SaleStockVariant) => {
             if (!acc[item.idColor]) {
               acc[item.idColor] = {
                 colorName: item.descripcionColor,
@@ -90,7 +89,6 @@ export function useGestionVentasPage() {
 
   useEffect(() => {
     const handleStockUpdate = (updatedProduct: BotinesStockUpdate) => {
-      invalidateBotinesInventoryCache();
       setGroupedStockDetails((currentGroups) => {
         let changed = false;
         const nextGroups = { ...currentGroups };

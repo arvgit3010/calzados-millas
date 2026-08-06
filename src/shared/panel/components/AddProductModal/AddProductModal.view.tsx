@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   ClipboardList,
@@ -28,6 +28,18 @@ function ConfigIcon({
 const field =
   "h-11 w-full appearance-none rounded-xl border border-[#DDD3D7] bg-white text-sm text-[#251721] outline-none transition focus:border-[#984258] focus:ring-2 focus:ring-[#984258]/15";
 
+function isTallaSelected(selected: Array<number | string>, id: number) {
+  return selected.some((value) => Number(value) === id);
+}
+
+function tallaChipClass(active: boolean) {
+  return `inline-flex min-w-[3rem] items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition-all cursor-pointer ${
+    active
+      ? "border-[#984258] bg-[#984258] text-white shadow-[0_2px_8px_rgba(152,66,88,0.25)]"
+      : "border-[#E5E0E2] bg-white text-[#251721] hover:border-[#D78A9D] hover:bg-[#FFFAFB]"
+  }`;
+}
+
 export function AddProductModalView({
   open,
   onClose,
@@ -48,10 +60,34 @@ export function AddProductModalView({
   tallas,
   rangos,
   tiposLote,
+  selectedTallas,
   onSubmitForm,
   onInvalidForm,
 }: AddProductModalViewProps) {
   const [tallasOpen, setTallasOpen] = useState(false);
+  const tallasRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!tallasOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tallasRef.current && !tallasRef.current.contains(event.target as Node)) {
+        setTallasOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [tallasOpen]);
+
+  const toggleTalla = (id: number) => {
+    const current = selectedTallas ?? [];
+    const next = isTallaSelected(current, id)
+      ? current.filter((value) => Number(value) !== id)
+      : [...current, id];
+
+    setValue("tallas", next as number[], { shouldValidate: true });
+  };
 
   // Detecta el pack seleccionado (ej. "5-8", "5-9") para mostrar "x2" en ciertas tallas
   const selectedRango = rangos.find((r) => r.id_rango === rangoId);
@@ -75,6 +111,13 @@ export function AddProductModalView({
       doubleSizes.add(37);
     }
   }
+
+  const selectedTallaLabels = tallas
+    .filter((t) => isTallaSelected(selectedTallas, t.id_talla))
+    .map((t) => {
+      const size = Number(t.desc_talla);
+      return doubleSizes.has(size) ? `${t.desc_talla} x2` : t.desc_talla;
+    });
 
   if (!open) return null;
 
@@ -183,62 +226,86 @@ export function AddProductModalView({
                   </div>
                   {errors.color && <p className="text-[10px] text-[#EF4444]">{errors.color.message}</p>}
                 </div>
-                <div>
-                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-[#867275]">
+              </div>
+
+              <div ref={tallasRef}>
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <label className="block text-[11px] font-bold uppercase tracking-[0.08em] text-[#867275]">
                     Tallas
                   </label>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setTallasOpen((prev) => !prev)}
-                      className={`${field} flex w-full items-center justify-between px-3`}
-                    >
-                      <span className="inline-flex min-w-0 items-center gap-2 text-sm text-[#251721]">
-                        <Ruler size={14} className="shrink-0 text-[#984258]" />
-                        <span className="truncate">Selecciona las tallas</span>
-                      </span>
-                      <ChevronDown
-                        size={11}
-                        className={`text-[#867275] transition-transform ${tallasOpen ? "rotate-180" : ""}`}
-                      />
-                    </button>
-                    {tallasOpen && (
-                      <div className="absolute z-20 mt-1 w-full rounded-md border border-[#E5E7EB] bg-white shadow-lg max-h-40 overflow-y-auto">
-                        <div className="py-1 divide-y divide-[#F3F4F6]">
-                          {tallas.map((t) => {
-                            const size = Number(t.desc_talla);
-                            const label = doubleSizes.has(size)
-                              ? `${t.desc_talla} x2`
-                              : t.desc_talla;
-
-                            return (
-                              <label
-                                key={t.id_talla}
-                                className="flex items-center gap-2 px-2 py-1 text-[10px] text-[#251721] cursor-pointer hover:bg-[#FFF0F6] w-full"
-                              >
-                                <input
-                                  type="checkbox"
-                                  value={String(t.id_talla)}
-                                  className="h-3 w-3 rounded border-[#D1D5DB] text-[#984258] focus:ring-[#984258]/40"
-                                  {...register("tallas")}
-                                />
-                                <span>{label}</span>
-                                {isPackOtro && (
-                                  <input
-                                    type="number"
-                                    min={1}
-                                    defaultValue={1}
-                                    className="ml-auto w-10 h-4 rounded border border-[#D1D5DB] text-[9px] px-1 text-right"
-                                  />
-                                )}
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  {selectedTallaLabels.length > 0 && (
+                    <span className="rounded-full bg-[#FFF0F6] px-2 py-0.5 text-[10px] font-semibold text-[#984258]">
+                      {selectedTallaLabels.length} seleccionada{selectedTallaLabels.length === 1 ? "" : "s"}
+                    </span>
+                  )}
                 </div>
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setTallasOpen((prev) => !prev)}
+                    className={`${field} flex w-full items-center justify-between gap-2 px-3 text-left ${
+                      tallasOpen ? "border-[#984258] ring-2 ring-[#984258]/15" : ""
+                    }`}
+                  >
+                    <span className="inline-flex min-w-0 flex-1 items-center gap-2">
+                      <Ruler size={14} className="shrink-0 text-[#984258]" />
+                      {selectedTallaLabels.length > 0 ? (
+                        <span className="truncate text-sm font-medium text-[#251721]">
+                          {selectedTallaLabels.join(", ")}
+                        </span>
+                      ) : (
+                        <span className="truncate text-sm text-[#867275]">Selecciona las tallas</span>
+                      )}
+                    </span>
+                    <ChevronDown
+                      size={14}
+                      className={`shrink-0 text-[#867275] transition-transform ${tallasOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+
+                  {tallasOpen && (
+                    <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-[#E7DEE2] bg-white shadow-[0_16px_40px_rgba(37,23,33,0.14)]">
+                      <div className="border-b border-[#F1E8EC] bg-[#FAF7F8] px-3 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#867275]">
+                          Toca para seleccionar
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 p-3 sm:grid-cols-4">
+                        {tallas.map((t) => {
+                          const size = Number(t.desc_talla);
+                          const label = doubleSizes.has(size)
+                            ? `${t.desc_talla} x2`
+                            : t.desc_talla;
+                          const active = isTallaSelected(selectedTallas, t.id_talla);
+
+                          return (
+                            <div key={t.id_talla} className="flex flex-col gap-1">
+                              <button
+                                type="button"
+                                onClick={() => toggleTalla(t.id_talla)}
+                                className={tallaChipClass(active)}
+                              >
+                                {label}
+                              </button>
+                              {isPackOtro && active && (
+                                <input
+                                  type="number"
+                                  min={1}
+                                  defaultValue={1}
+                                  className="h-8 w-full rounded-lg border border-[#DDD3D7] bg-white px-2 text-center text-xs text-[#251721] outline-none transition focus:border-[#984258] focus:ring-2 focus:ring-[#984258]/15"
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {errors.tallas && (
+                  <p className="mt-1 text-[10px] text-[#EF4444]">{errors.tallas.message}</p>
+                )}
               </div>
 
               <div>
@@ -287,7 +354,7 @@ export function AddProductModalView({
                         // Si es un pack "OTRO" (o cualquier texto sin rango numérico),
                         // limpiamos todas las tallas seleccionadas.
                         if (/otro/i.test(rango.descripcion) && !/\d+\s*-\s*\d+/.test(rango.descripcion)) {
-                          setValue("tallas", [] as unknown as number[], { shouldValidate: true });
+                          setValue("tallas", [], { shouldValidate: true });
                           return;
                         }
 
@@ -307,13 +374,9 @@ export function AddProductModalView({
                             .map((t) => t.id_talla);
 
                           if (tallaIds.length > 0) {
-                            // React Hook Form maneja los valores de los checkboxes como strings,
-                            // por eso convertimos los ids a string para que se marquen visualmente.
-                            const tallaValues = tallaIds.map((id) => String(id));
-                            setValue("tallas", tallaValues as unknown as number[], { shouldValidate: true });
+                            setValue("tallas", tallaIds, { shouldValidate: true });
                           } else {
-                            // Si no hay tallas en el rango, aseguramos que queden todas desmarcadas.
-                            setValue("tallas", [] as unknown as number[], { shouldValidate: true });
+                            setValue("tallas", [], { shouldValidate: true });
                           }
                         }
                         // Si no hace match con un rango numérico, no tocamos las tallas

@@ -11,6 +11,12 @@ export const apiClient = axios.create({
   },
 });
 
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: () => void) {
+  unauthorizedHandler = handler;
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) {
@@ -21,5 +27,14 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(toApiError(error)),
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      const url = error.config?.url ?? "";
+      const isAuthRequest = url.includes("api/auth/login");
+      if (!isAuthRequest) {
+        unauthorizedHandler?.();
+      }
+    }
+    return Promise.reject(toApiError(error));
+  },
 );

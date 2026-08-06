@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
-import { Menu, PanelLeftClose, Search, User } from "lucide-react";
-import { ROUTES } from "@/core";
+import { Link, useNavigate } from "react-router-dom";
+import { LogOut, Menu, PanelLeftClose, Search } from "lucide-react";
+import { ROUTES, useAuth } from "@/core";
 import type { InventoryManagementLayoutLogic } from "../../hooks/useInventoryManagementLayout";
 import type { StockRow } from "../../types";
 import { InventorySidebar } from "../InventorySidebar/InventorySidebar";
@@ -22,9 +22,17 @@ export function InventoryManagementLayoutView({
   sidebarOpen,
   toggleSidebar,
 }: InventoryManagementLayoutViewProps) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate(ROUTES.iniciarSession);
+  };
+
   return (
     <div className="h-dvh overflow-hidden bg-[#FBF0F0] text-[#251721]">
-      <header className="fixed top-0 w-full flex justify-between items-center px-4 md:px-6 h-14 bg-[#FFF7F9]/80 backdrop-blur-md z-50 border-b border-[#E5E7EB] shadow-sm">
+      <header className="panel-admin-header fixed top-0 z-50 flex h-16 w-full items-center justify-between gap-3 border-b border-[#E8D5D9] bg-[#FFF7F9]/95 px-4 shadow-[0_4px_24px_rgba(168,124,124,0.08)] backdrop-blur-md md:px-6">
         <div className="flex items-center gap-2 md:gap-3">
           <button
             type="button"
@@ -53,30 +61,49 @@ export function InventoryManagementLayoutView({
             />
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
           <StockAlertsBell rows={rows} />
-          <Link
-            to={ROUTES.home}
-            className="hidden md:inline-flex px-3 py-1.5 border border-[#984258] !text-[#984258] no-underline font-bold rounded-lg hover:bg-[#984258]/5 hover:!text-[#7A2E45] transition-all text-[12px]"
-          >
+
+          <Link to={ROUTES.home} className="panel-header-btn panel-header-btn--ghost hidden md:inline-flex">
             Volver al inicio
           </Link>
-          <div className="h-7 w-px bg-[#E5E7EB] mx-1 hidden sm:block" />
-          <div className="flex items-center gap-2">
-            <div className="text-right hidden lg:block">
-              <p className="text-[11px] font-bold text-[#251721]">Admin</p>
-              <p className="text-[9px] text-[#544245]">Store Manager</p>
+
+          <div className="panel-user-chip">
+            <div
+              className="panel-user-chip__avatar"
+              title={user?.email}
+              aria-hidden="true"
+            >
+              {(user?.email?.[0] ?? "U").toUpperCase()}
             </div>
-            <div className="w-8 h-8 rounded-full border-2 border-[#E8839A] overflow-hidden bg-[#FBE1EF] flex items-center justify-center">
-              <User size={16} className="text-[#984258]" aria-hidden="true" />
+
+            <div className="panel-user-chip__info hidden min-w-0 sm:block">
+              <p className="panel-user-chip__email" title={user?.email}>
+                {user?.email ?? "Usuario"}
+              </p>
+              <p className="panel-user-chip__role">
+                {user?.role === "admin" ? "Administrador" : user?.role ?? "Usuario"}
+              </p>
             </div>
+
+            <div className="panel-user-chip__divider hidden sm:block" aria-hidden="true" />
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="panel-user-chip__logout"
+              aria-label="Cerrar sesión"
+              title="Cerrar sesión"
+            >
+              <LogOut size={17} strokeWidth={2} />
+            </button>
           </div>
         </div>
       </header>
 
-      <div className="flex h-full pt-14">
+      <div className="flex h-full pt-16">
         <aside
-          className={`fixed left-0 top-14 bottom-0 w-56 bg-[#FFF7F9] border-r border-[#E5E7EB] flex flex-col p-3 z-40 transition-transform duration-300 ease-in-out ${
+          className={`fixed left-0 top-16 bottom-0 w-56 bg-[#FFF7F9] border-r border-[#E5E7EB] flex flex-col p-3 z-40 transition-transform duration-300 ease-in-out ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
           aria-hidden={!sidebarOpen}

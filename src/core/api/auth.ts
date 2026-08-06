@@ -1,19 +1,14 @@
 import { apiClient } from "./axios";
-import type { LoginResponse } from "./types";
+import type { AuthUser, LoginResponse } from "./types";
 import { validateApiResponse } from "./validateResponse";
 
 type BackendLoginResponse = {
   access_token: string;
-  user: {
-    id: number | string;
-    email: string;
-    name?: string;
-    role?: string;
-  };
+  user: AuthUser;
 };
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
-  const { data } = await apiClient.post("api/Auth/login", {
+  const { data } = await apiClient.post("api/auth/login", {
     email,
     password,
   });
@@ -21,9 +16,11 @@ export async function login(email: string, password: string): Promise<LoginRespo
 
   return {
     accessToken: response.access_token,
-    user: {
-      ...response.user,
-      id: Number(response.user.id),
-    },
+    user: response.user,
   };
+}
+
+export async function getMe(): Promise<AuthUser> {
+  const { data } = await apiClient.get("api/auth/me");
+  return validateApiResponse<AuthUser>(data);
 }

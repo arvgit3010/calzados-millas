@@ -14,6 +14,7 @@ import {
 
 const INVENTORY_CACHE_TTL_MS = 15_000;
 const LOOKUP_CACHE_TTL_MS = 5 * 60_000;
+const SEARCH_CACHE_TTL_MS = 30_000;
 let inventoryCache:
   | { data: GetAllBotinesInventoryResponse[]; expiresAt: number }
   | null = null;
@@ -31,6 +32,14 @@ const lookupCache = new Map<
   { data: unknown; expiresAt: number }
 >();
 const lookupRequests = new Map<string, Promise<unknown>>();
+const searchCache = new Map<
+  string,
+  { data: GetAllBotinesInventoryResponse[]; expiresAt: number }
+>();
+const searchRequests = new Map<
+  string,
+  Promise<GetAllBotinesInventoryResponse[]>
+>();
 
 async function getCachedLookup<T>(url: string): Promise<T> {
   const cached = lookupCache.get(url);
@@ -59,6 +68,7 @@ async function getCachedLookup<T>(url: string): Promise<T> {
 export function invalidateBotinesInventoryCache(): void {
   inventoryCache = null;
   stockDetailCache.clear();
+  searchCache.clear();
 }
 
 /** GET colores disponibles de botines desde el API. */
@@ -121,10 +131,32 @@ export async function getBotinesInventoryProducts(): Promise<GetAllBotinesInvent
 export async function searchBotinesInventoryProduct(
   search: ModelSeachParams,
 ): Promise<GetAllBotinesInventoryResponse[]> {
-  const { data } = await apiClient.get("api/botines-milas/search-producto", {
-    params: search,
-  });
-  return validateApiResponse<GetAllBotinesInventoryResponse[]>(data);
+  const cacheKey = search.inputDescriptionSearch.trim().toUpperCase();
+  const cached = searchCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
+  const pending = searchRequests.get(cacheKey);
+  if (pending) return pending;
+
+  const request = apiClient
+    .get("api/botines-milas/search-producto", { params: search })
+    .then(({ data }) => {
+      const products =
+        validateApiResponse<GetAllBotinesInventoryResponse[]>(data);
+      searchCache.set(cacheKey, {
+        data: products,
+        expiresAt: Date.now() + SEARCH_CACHE_TTL_MS,
+      });
+      return products;
+    })
+    .finally(() => {
+      searchRequests.delete(cacheKey);
+    });
+
+  searchRequests.set(cacheKey, request);
+  return request;
 }
 
 /** Crea un nuevo producto / lote de compra de botines en el backend. */

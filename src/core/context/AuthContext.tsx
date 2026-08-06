@@ -1,6 +1,7 @@
 import { createContext, useCallback, useEffect, useReducer } from "react";
 import type { AuthUser } from "@/core/api/types";
-import { login as loginApi } from "@/core/api/auth";
+import { getMe, login as loginApi } from "@/core/api/auth";
+import { setUnauthorizedHandler } from "@/core/api/axios";
 
 /* ─── State ────────────────────────────────────────── */
 
@@ -33,6 +34,11 @@ export interface AuthContextValue extends AuthState {
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
+function clearStoredSession() {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("authUser");
+}
+
 /* ─── Provider ─────────────────────────────────────── */
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -41,19 +47,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user: null,
   });
 
+  const logout = useCallback(() => {
+    clearStoredSession();
+    dispatch({ type: "LOGOUT" });
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(logout);
+    return () => setUnauthorizedHandler(() => undefined);
+  }, [logout]);
+
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
-    const raw = localStorage.getItem("authUser");
-    if (token && raw) {
-      try {
-        dispatch({ type: "RESTORE_SESSION", user: JSON.parse(raw) as AuthUser });
-        return;
-      } catch {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("authUser");
-      }
+    if (!token) {
+      dispatch({ type: "LOGOUT" });
+      return;
     }
-    dispatch({ type: "LOGOUT" });
+
+    let cancelled = false;
+
+    getMe()
+      .then((profile) => {
+        if (cancelled) return;
+        localStorage.setItem("authUser", JSON.stringify(profile));
+        dispatch({ type: "RESTORE_SESSION", user: profile });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        clearStoredSession();
+        dispatch({ type: "LOGOUT" });
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -62,12 +89,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("authUser", JSON.stringify(user));
     dispatch({ type: "LOGIN_SUCCESS", user });
     return user;
-  }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("authUser");
-    dispatch({ type: "LOGOUT" });
   }, []);
 
   return (
