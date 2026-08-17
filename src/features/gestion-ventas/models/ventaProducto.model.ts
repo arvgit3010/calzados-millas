@@ -12,7 +12,8 @@ export type CrearVentaProductoRequest = {
   distrito: string;
   provincia: string;
   direccion: string;
-  usuarioId: number;
+  /** UUID del usuario autenticado (`users.id`). */
+  usuarioId: string;
   items: VentaProductoItemRequest[];
 };
 

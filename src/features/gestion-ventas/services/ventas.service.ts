@@ -1,5 +1,6 @@
 import { apiClient, validateApiResponse } from "@/core";
 import { invalidateBotinesInventoryCache } from "@/features/gestion-botines/services/botines.service";
+import { invalidateSandaliasInventoryCache } from "@/features/gestion-sandalias/services/sandalias.service";
 import type {
   CrearVentaProductoRequest,
   CrearVentaProductoResponse,
@@ -16,6 +17,7 @@ export async function crearVentaProducto(
   );
   const response = validateApiResponse<CrearVentaProductoResponse>(data);
   invalidateBotinesInventoryCache();
+  invalidateSandaliasInventoryCache();
   return response;
 }
 

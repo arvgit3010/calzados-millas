@@ -8,6 +8,7 @@ import {
 type GestionSandaliasPageViewProps = {
   title: string;
   inventoryTitle: string;
+  section: "sandalias";
   rows: StockRow[];
   addProduct: (data: AddProductFormData) => void;
   updateProduct: (id: number, data: AddProductFormData) => void;
@@ -17,6 +18,7 @@ type GestionSandaliasPageViewProps = {
 export function GestionSandaliasPageView({
   title,
   inventoryTitle,
+  section,
   rows,
   addProduct,
   updateProduct,
@@ -27,6 +29,7 @@ export function GestionSandaliasPageView({
       <CalzadoPanel
         rows={rows}
         inventoryTitle={inventoryTitle}
+        section={section}
         onAddProduct={addProduct}
         onEditProduct={updateProduct}
         onDeleteProduct={deleteProduct}

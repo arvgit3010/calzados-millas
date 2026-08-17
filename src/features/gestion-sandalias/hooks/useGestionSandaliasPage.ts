@@ -1,11 +1,11 @@
 import { useInventoryCrud } from "@/shared/panel";
-import { getSandaliasInventory } from "../services/sandalias.service";
 
 export function useGestionSandaliasPage() {
-  const crud = useInventoryCrud(getSandaliasInventory);
+  // Sin datos todavía: cuando exista API, cargar aquí como botines.
+  const crud = useInventoryCrud(() => []);
 
   return {
-    title: "Gestión de Sandalias",
+    title: "",
     inventoryTitle: "Inventario de Sandalias",
     section: "sandalias" as const,
     rows: crud.rows,

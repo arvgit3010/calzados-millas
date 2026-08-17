@@ -8,6 +8,9 @@ type InventoryManagementLayoutProps = {
   rows: StockRow[];
   children?: ReactNode;
   noFooter?: boolean;
+  contentScrollable?: boolean;
+  /** Título más pequeño y tipografía Inter (p. ej. dashboard). */
+  compactTitle?: boolean;
 };
 
 /** Contenedor smart: conecta useInventoryManagementLayout con la vista pura. */

@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type FieldErrors } from "react-hook-form";
 import { z } from "zod";
-import type { AddProductFormData, StockRow } from "../types";
+import type { AddProductFormData, InventorySection, StockRow } from "../types";
 import {
   getBotinesColoresApi,
   getBotinesModelosApi,
@@ -11,9 +11,9 @@ import {
   getBotinesTiposLoteOptionsApi,
   createBotinProductoApiInventory,
 } from "@/features/gestion-botines/services/botines.service";
-import { getApiErrorMessage } from "@/core";
+import { getSandaliasModelosApi, createSandaliaProductoApi } from "@/features/gestion-sandalias/services/sandalias.service";
+import { getApiErrorMessage, useAuth } from "@/core";
 import type {
-  ModelBotin,
   ModelRango,
   ModelTalla,
   ModelTipoLote,
@@ -21,15 +21,17 @@ import type {
 } from "@/features/gestion-botines/models/botinesInventory.model";
 import { toast } from "react-hot-toast";
 
-
-
 type Color = {
   id: number;
   name: string;
   description: string;
   image: string;
+};
 
-}
+type ModeloOption = {
+  id_model: number;
+  label: string;
+};
 
 const QTY_BY_CONFIG = {
   docena: 12,
@@ -37,6 +39,39 @@ const QTY_BY_CONFIG = {
 } as const;
 
 type CantidadConfig = keyof typeof QTY_BY_CONFIG;
+
+function qtyForTalla(
+  size: number,
+  from: number | null,
+  to: number | null,
+): number {
+  const isPackFiveToEight =
+    from === 5 && to === 8 && (size === 36 || size === 37);
+  const isPackFiveToNine = from === 5 && to === 9 && size === 37;
+  return isPackFiveToEight || isPackFiveToNine ? 2 : 1;
+}
+
+/** Media docena = distribución base del pack; Docena = el doble. */
+function loteFactor(cantidadConfig?: string | null): number {
+  if (cantidadConfig === "docena") return 2;
+  if (cantidadConfig === "media_docena") return 1;
+  return 0;
+}
+
+function totalParesLote(
+  tallasSeleccionadas: ModelTalla[],
+  from: number | null,
+  to: number | null,
+  cantidadConfig?: string | null,
+): number {
+  const factor = loteFactor(cantidadConfig);
+  if (!factor || !tallasSeleccionadas.length) return 0;
+
+  return tallasSeleccionadas.reduce((sum, talla) => {
+    const size = Number(talla.desc_talla);
+    return sum + qtyForTalla(size, from, to) * factor;
+  }, 0);
+}
 
 const modalSchema = z
   .object({
@@ -49,7 +84,11 @@ const modalSchema = z
     cantidadConfig: z.enum(["docena", "media_docena", "otro"]),
     rangoId: z.number().int().positive("Selecciona un rango"),
     tipoLoteId: z.number().int().positive("Selecciona un tipo de lote"),
-    // cantidadOtro: z.number().int().min(0).optional(),
+    observacion: z
+      .string()
+      .max(100, "Máximo 100 caracteres")
+      .optional()
+      .or(z.literal("")),
   })
   .superRefine(() => {
     // if (data.cantidadConfig === "otro" && (!data.cantidadOtro || data.cantidadOtro < 1)) {
@@ -100,11 +139,19 @@ type UseAddProductModalArgs = {
   onSubmit: (data: AddProductFormData) => void | Promise<void>;
   onCreated?: () => void | Promise<void>;
   editingRow?: StockRow;
+  section?: InventorySection;
 };
 
-export function useAddProductModal({open,onClose,onCreated,editingRow}: UseAddProductModalArgs) {
+export function useAddProductModal({
+  open,
+  onClose,
+  onCreated,
+  editingRow,
+  section = "botines",
+}: UseAddProductModalArgs) {
+  const { user } = useAuth();
   const [colores, setColores] = useState<Color[]>([]);
-  const [modelos, setModelos] = useState<ModelBotin[]>([]);
+  const [modelos, setModelos] = useState<ModeloOption[]>([]);
   const [tallas, setTallas] = useState<ModelTalla[]>([]);
   const [rangos, setRangos] = useState<ModelRango[]>([]);
   const [tiposLote, setTiposLote] = useState<ModelTipoLote[]>([]);
@@ -133,13 +180,37 @@ export function useAddProductModal({open,onClose,onCreated,editingRow}: UseAddPr
   const modelo = watch("modelo");
   const tipoLoteId = watch("tipoLoteId");
   const selectedTallas = watch("tallas") ?? [];
-  // const cantidadOtro = watch("cantidadOtro");
 
-  // const resumenQty = useMemo(() => {
-  //   if (cantidadConfig === "otro") return cantidadOtro || 0;
-  //   return QTY_BY_CONFIG[cantidadConfig];
-  // }, [cantidadConfig, cantidadOtro]);
+  const resumenQty = useMemo(() => {
+    const selectedRango = rangos.find((rango) => rango.id_rango === rangoId);
+    const match = selectedRango?.descripcion.match(/(\d+)\s*-\s*(\d+)/);
+    const from = match ? Number(match[1]) : null;
+    const to = match ? Number(match[2]) : null;
 
+    const tallasSeleccionadas = tallas.filter((talla) =>
+      selectedTallas.some((id) => Number(id) === talla.id_talla),
+    );
+
+    return totalParesLote(
+      tallasSeleccionadas,
+      from,
+      to,
+      cantidadConfig,
+    );
+  }, [rangos, rangoId, tallas, selectedTallas, cantidadConfig]);
+
+  const resumenLoteLabel = useMemo(() => {
+    if (cantidadConfig === "docena") return "docena";
+    if (cantidadConfig === "media_docena") return "media docena";
+    return null;
+  }, [cantidadConfig]);
+
+  const resumenTallasLabel = useMemo(() => {
+    const count = selectedTallas.length;
+    if (count === 0) return "sin talla seleccionada";
+    if (count === 1) return "la talla seleccionada";
+    return `las ${count} tallas seleccionadas`;
+  }, [selectedTallas]);
   useEffect(() => {
     if (!open) return;
 
@@ -162,12 +233,22 @@ export function useAddProductModal({open,onClose,onCreated,editingRow}: UseAddPr
       }
     })();
 
-    (async ()=> {
+    (async () => {
       try {
-        const dataModelos = await getBotinesModelosApi();
+        const dataModelos =
+          section === "sandalias"
+            ? await getSandaliasModelosApi()
+            : await getBotinesModelosApi();
         if (cancelled) return;
-        setModelos(dataModelos);
-   
+        setModelos(
+          dataModelos.map((m) => ({
+            id_model: m.id_model,
+            label:
+              section === "sandalias"
+                ? (m as { descModelSandalias: string }).descModelSandalias
+                : (m as { descModelBotines: string }).descModelBotines,
+          })),
+        );
       } catch (error) {
         if (!cancelled) console.error(getApiErrorMessage(error));
       }
@@ -207,17 +288,28 @@ export function useAddProductModal({open,onClose,onCreated,editingRow}: UseAddPr
       cancelled = true;
     };
 
-  }, [open]);
+  }, [open, section]);
 
 
   async function OnSubmitForm(data: ModalFormData) {
     try {
+      if (!user?.id) {
+        toast.error("No se encontró el usuario autenticado. Vuelve a iniciar sesión.");
+        return;
+      }
+
       const selectedColor = colores.find((color) => color.name === data.color);
       const selectedRango = rangos.find((rango) => rango.id_rango === data.rangoId);
       const selectedTallas = tallas.filter((talla) => data.tallas.includes(talla.id_talla));
       const match = selectedRango?.descripcion.match(/(\d+)\s*-\s*(\d+)/);
       const from = match ? Number(match[1]) : null;
       const to = match ? Number(match[2]) : null;
+      const factor = loteFactor(data.cantidadConfig);
+
+      if (!factor) {
+        toast.error("Selecciona Docena o Media Docena");
+        return;
+      }
 
       const payload: CrearBotinProductoRequest = {
         idModelo: Number(data.modelo),
@@ -227,23 +319,26 @@ export function useAddProductModal({open,onClose,onCreated,editingRow}: UseAddPr
         precioCompraPar: data.precio,
         precioVentaPar: data.precio,
         cantidadLotes: 1,
+        observacion: data.observacion?.trim() || undefined,
+        usuarioId: user.id,
         detalleTallas: selectedTallas.map((talla) => {
           const size = Number(talla.desc_talla);
-          const isPackFiveToEight =
-            from === 5 && to === 8 && (size === 36 || size === 37);
-          const isPackFiveToNine =
-            from === 5 && to === 9 && size === 37;
-
           return {
             idTalla: talla.id_talla,
-            cantidad: isPackFiveToEight || isPackFiveToNine ? 2 : 1,
+            cantidad: qtyForTalla(size, from, to) * factor,
           };
         }),
       };
 
-      await createBotinProductoApiInventory(payload);
+      if (section === "sandalias") {
+        await createSandaliaProductoApi(payload);
+        toast.success("Sandalia creada correctamente");
+      } else {
+        await createBotinProductoApiInventory(payload);
+        toast.success("Producto creado correctamente");
+      }
+
       onCreated?.();
-      toast.success("Producto creado correctamente");
       onClose();
     } catch (error) {
       const message = getApiErrorMessage(error);
@@ -295,7 +390,9 @@ export function useAddProductModal({open,onClose,onCreated,editingRow}: UseAddPr
     rangoId,
     modelo,
     tipoLoteId,
-    // resumenQty,
+    resumenQty,
+    resumenTallasLabel,
+    resumenLoteLabel,
     modelos: modelos || [],
     colores: colores || [],
     tallas: tallas || [],

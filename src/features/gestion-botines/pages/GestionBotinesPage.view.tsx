@@ -27,6 +27,7 @@ export function GestionBotinesPageView({
       <CalzadoPanel
         rows={rows}
         inventoryTitle={inventoryTitle}
+        section="botines"
         onAddProduct={addProduct}
         onEditProduct={updateProduct}
         onDeleteProduct={deleteProduct}

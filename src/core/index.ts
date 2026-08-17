@@ -13,6 +13,7 @@ export { AuthProvider, useAuth } from "./context";
 export {
   BotinesSocketProvider,
   botinesSocket,
+  dashboardSocket,
 } from "./socket";
 export type {
   BotinesStockUpdate,

@@ -1,9 +1,11 @@
 import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ROUTES } from "@/core";
+import { DashboardPage } from "@/features/dashboard";
 import { GestionBotinesPage } from "@/features/gestion-botines";
 import { GestionSandaliasPage } from "@/features/gestion-sandalias";
 import { GestionVentasPage } from "@/features/gestion-ventas";
+import { ReportesPage } from "@/features/reportes";
 import { IniciarSesionPage } from "@/features/iniciar-sesion";
 import { LandingPage } from "@/features/landing";
 import { AdminRoute } from "./AdminRoute";
@@ -24,6 +26,8 @@ export function AppRouter() {
       </Route>
 
       <Route element={<AdminRoute />}>
+        <Route path={ROUTES.dashboard} element={<DashboardPage />} />
+        <Route path={ROUTES.reportes} element={<ReportesPage />} />
         <Route path={ROUTES.gestionSandalias} element={<GestionSandaliasPage />} />
         <Route path={ROUTES.gestionBotines} element={<GestionBotinesPage />} />
         <Route path={ROUTES.gestionVentas} element={<GestionVentasPage />} />

@@ -1,5 +1,5 @@
 import { useAddProductModal } from "../../hooks/useAddProductModal";
-import type { AddProductFormData, StockRow } from "../../types";
+import type { AddProductFormData, InventorySection, StockRow } from "../../types";
 import { AddProductModalView } from "./AddProductModal.view";
 
 export type { AddProductFormData };
@@ -10,18 +10,8 @@ type AddProductModalProps = {
   onSubmit: (data: AddProductFormData) => void | Promise<void>;
   onCreated?: () => void | Promise<void>;
   editingRow?: StockRow;
+  section?: InventorySection;
 };
- 
-
-//  type GridRow = {
-//   id: number;
-//   sku: string;
-//   modelo: string;
-//   color: string;
-//   talla1: number;
-//   talla2: number;
-//   talla3: number;
-//  }
 
 /** Contenedor smart: conecta useAddProductModal con la vista pura. */
 export function AddProductModal(props: AddProductModalProps) {

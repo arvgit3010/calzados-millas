@@ -1,64 +1,29 @@
-import type { StockRow } from "@/shared/panel";
-// import { PRODUCT_PLACEHOLDER_IMAGE } from "@/shared/panel/constants";
+export type ModelSandalia = {
+  id_model: number;
+  codigo_model: string;
+  descModelSandalias: string;
+  nombre_model: string;
+};
 
-/** Datos mock del inventario de sandalias.
- *  totalPairs se mantiene manualmente.
- *  size2.qty = 0 (id 4) indica que esa talla no está disponible. */
-export const sandaliasInventory: StockRow[] = [
-  {
-    id: 1,
-    model: "Sandalia Casual S-001",
-    color: "Negro",
-    size1: { size: 36, qty: 5 },
-    size2: { size: 37, qty: 2 },
-    size3: { size: 38, qty: 2 },
-    totalPairs: 9,
-    season: "Verano 2024",
-    status: "Activo",
-    // image: PRODUCT_PLACEHOLDER_IMAGE,
-    provider: "Calzados Mila SAC",
-    soldTotal: 28,
-  },
-  {
-    id: 2,
-    model: "Sandalia Casual S-001",
-    color: "Marron",
-    size1: { size: 36, qty: 4 },
-    size2: { size: 37, qty: 6 },
-    size3: { size: 38, qty: 4 },
-    totalPairs: 14,
-    season: "Verano 2024",
-    status: "Activo",
-    // image: PRODUCT_PLACEHOLDER_IMAGE,
-    provider: "Calzados Mila SAC",
-    soldTotal: 41,
-  },
-  {
-    id: 3,
-    model: "Sandalia Sport S-002",
-    color: "Azul",
-    size1: { size: 39, qty: 2 },
-    size2: { size: 40, qty: 3 },
-    size3: { size: 41, qty: 5 },
-    totalPairs: 10,
-    season: "Verano 2024",
-    status: "Activo",
-    // image: PRODUCT_PLACEHOLDER_IMAGE,
-    provider: "Distribuidora Andina",
-    soldTotal: 32,
-  },
-  {
-    id: 4,
-    model: "Sandalia Sport S-002",
-    color: "Gris",
-    size1: { size: 39, qty: 1 },
-    size2: { size: 40, qty: 0 },
-    size3: { size: 41, qty: 2 },
-    totalPairs: 3,
-    season: "Verano 2024",
-    status: "Bloqueado",
-    // image: PRODUCT_PLACEHOLDER_IMAGE,
-    provider: "Distribuidora Andina",
-    soldTotal: 19,
-  },
-];
+/** Misma forma que botines para reutilizar el panel. */
+export type GetAllSandaliasInventoryResponse = {
+  id_producto: number;
+  idTipoCalzado?: number;
+  idModelo: number;
+  descripcionModelo: string;
+  nombreModelo: string;
+  codigoModelo: string;
+  idColor: number;
+  descripcionColor: string;
+  id_talla: number;
+  descripcionTalla: string;
+  sku: string;
+  stock_actual: number;
+  precio_compra_par: string;
+  precio_venta_par: string;
+  pro_observacion: string;
+  usuario_id: number;
+  fecha_registro: string;
+  fecha_actualizacion: string;
+  imagen?: string | null;
+};

@@ -25,6 +25,9 @@ type SaleItem = {
   sku: string;
   color: string;
   size: string;
+  /** Precio de lista (catálogo). */
+  listPrice: number;
+  /** Precio real de esta venta (editable / rebaja). */
   price: number;
   qty: number;
   observation: string;
@@ -76,10 +79,15 @@ export function PanelVentasView({
     initialProduct,
   );
   const [showSelector, setShowSelector] = useState(false);
+  const [selectorSection, setSelectorSection] = useState<"botines" | "sandalias">(
+    "botines",
+  );
   const [pendingProduct, setPendingProduct] = useState<GetAllBotinesInventoryResponse | null>(null);
   const [showConfirmProduct, setShowConfirmProduct] = useState(false);
   const [lastSaleId, setLastSaleId] = useState<number | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  /** Precio editable al vender (permite rebajas). */
+  const [salePrice, setSalePrice] = useState<string>("");
 
   const {
     register,
@@ -91,8 +99,19 @@ export function PanelVentasView({
     mode: "onBlur",
   });
 
-  const unitPrice = Number(currentProduct?.precio_venta_par);
-  const hasValidUnitPrice = Number.isFinite(unitPrice);
+  const listPrice = Number(currentProduct?.precio_venta_par);
+  const purchasePrice = Number(currentProduct?.precio_compra_par);
+  const hasValidListPrice = Number.isFinite(listPrice) && listPrice > 0;
+  const salePriceNum = Number(salePrice);
+  const hasValidSalePrice = Number.isFinite(salePriceNum) && salePriceNum > 0;
+
+  useEffect(() => {
+    if (hasValidListPrice) {
+      setSalePrice(String(listPrice));
+    } else {
+      setSalePrice("");
+    }
+  }, [currentProduct?.id_producto, hasValidListPrice, listPrice]);
 
   const selectedVariant =
     selectedColorId !== null && selectedSize !== null
@@ -115,16 +134,17 @@ export function PanelVentasView({
   }, [selectedColorId, selectedSize]);
 
   const handleAddItem = () => {
-    if (!selectedVariant || !hasValidUnitPrice || currentStock <= 0) return;
+    if (!selectedVariant || !hasValidSalePrice || currentStock <= 0) return;
 
     setLastSaleId(null);
     const qtyToAdd = Math.min(quantity, currentStock);
+    const priceToUse = Math.round(salePriceNum * 100) / 100;
     setItems((prevItems) => {
       const existingItem = prevItems.find((item) => item.sku === selectedVariant.sku);
       if (existingItem) {
         return prevItems.map((item) =>
           item.sku === selectedVariant.sku
-            ? { ...item, qty: item.qty + qtyToAdd }
+            ? { ...item, qty: item.qty + qtyToAdd, price: priceToUse }
             : item,
         );
       }
@@ -139,7 +159,8 @@ export function PanelVentasView({
           sku: selectedVariant.sku,
           color: selectedVariant.descripcionColor,
           size: selectedVariant.descripcionTalla,
-          price: unitPrice,
+          listPrice: hasValidListPrice ? listPrice : priceToUse,
+          price: priceToUse,
           qty: qtyToAdd,
           observation: selectedVariant.observacion,
         },
@@ -147,7 +168,19 @@ export function PanelVentasView({
     });
     setQuantity(1);
     toast.success(
-      `${selectedVariant.nombreModelo} · ${selectedVariant.descripcionColor} · T.${selectedVariant.descripcionTalla} agregado`,
+      `${selectedVariant.nombreModelo} · ${selectedVariant.descripcionColor} · T.${selectedVariant.descripcionTalla} · S/ ${priceToUse.toFixed(2)}`,
+    );
+  };
+
+  const handleUpdateItemPrice = (itemId: number, raw: string) => {
+    const next = Number(raw);
+    if (!Number.isFinite(next) || next <= 0) return;
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === itemId
+          ? { ...item, price: Math.round(next * 100) / 100 }
+          : item,
+      ),
     );
   };
 
@@ -161,7 +194,7 @@ export function PanelVentasView({
 
   const onSubmit = async (data: VentaFormData) => {
     if (!user?.id) {
-      toast.error("No se encontró el usuario autenticado");
+      toast.error("No se encontró el usuario autenticado. Vuelve a iniciar sesión.");
       return;
     }
     if (items.length === 0) {
@@ -176,7 +209,7 @@ export function PanelVentasView({
       distrito: data.district,
       provincia: data.province,
       direccion: data.address,
-      usuarioId: Number(user?.id ?? null),
+      usuarioId: user.id,
       items: items.map((item) => ({
         idProducto: Number(item.idProducto),
         cantidad: Number(item.qty),
@@ -406,12 +439,17 @@ export function PanelVentasView({
                     </p>
                   </div>
                 </div>
-                {hasValidUnitPrice && (
+                {hasValidListPrice && (
                   <div className="text-right">
-                    <p className="text-[9px] text-[#A28C8F]">Precio/par</p>
+                    <p className="text-[9px] text-[#A28C8F]">Lista /par</p>
                     <p className="text-[13px] font-semibold text-[#251721]">
-                      S/ {unitPrice.toFixed(2)}
+                      S/ {listPrice.toFixed(2)}
                     </p>
+                    {Number.isFinite(purchasePrice) && purchasePrice > 0 ? (
+                      <p className="text-[9px] text-[#94A3B8]">
+                        Compra S/ {purchasePrice.toFixed(2)}
+                      </p>
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -427,6 +465,54 @@ export function PanelVentasView({
                 reservedStockBySku={reservedStockBySku}
               />
             ) : null}
+
+            {/* Precio editable (rebajas) */}
+            {currentProduct && (
+              <div className="rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-3 py-2.5">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <label
+                      htmlFor="sale-price-input"
+                      className="text-[10px] font-semibold uppercase tracking-wide text-[#B45309]"
+                    >
+                      Precio de venta (editable)
+                    </label>
+                    <p className="mt-0.5 text-[11px] text-[#92400E]">
+                      Lista S/ {hasValidListPrice ? listPrice.toFixed(2) : "—"} · puedes
+                      rebajar antes de agregar (ej. 59 o 56)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[13px] font-semibold text-[#92400E]">S/</span>
+                    <input
+                      id="sale-price-input"
+                      type="number"
+                      min={0.01}
+                      step={0.01}
+                      value={salePrice}
+                      onChange={(e) => setSalePrice(e.target.value)}
+                      className="h-9 w-[110px] rounded-lg border border-[#F59E0B] bg-white px-2 text-right text-[15px] font-bold text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#F59E0B]/40"
+                    />
+                  </div>
+                </div>
+                {hasValidSalePrice && hasValidListPrice && salePriceNum < listPrice ? (
+                  <p className="mt-1.5 text-[11px] font-medium text-[#B45309]">
+                    Rebaja: −S/ {(listPrice - salePriceNum).toFixed(2)} por par
+                    {Number.isFinite(purchasePrice) && purchasePrice > 0
+                      ? ` · ganancia ≈ S/ ${(salePriceNum - purchasePrice).toFixed(2)}/par`
+                      : ""}
+                  </p>
+                ) : null}
+                {hasValidSalePrice &&
+                Number.isFinite(purchasePrice) &&
+                purchasePrice > 0 &&
+                salePriceNum < purchasePrice ? (
+                  <p className="mt-1 text-[11px] font-semibold text-[#DC2626]">
+                    Atención: estás vendiendo por debajo del precio de compra
+                  </p>
+                ) : null}
+              </div>
+            )}
 
             {/* Cantidad a vender */}
             <div className="rounded-lg border border-[#F0E3E6] bg-white p-2.5 text-[12px] text-[#251721]">
@@ -493,7 +579,7 @@ export function PanelVentasView({
                   <button
                     type="button"
                     onClick={handleAddItem}
-                    disabled={currentStock <= 0 || !hasValidUnitPrice}
+                    disabled={currentStock <= 0 || !hasValidSalePrice}
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-[#984258] px-4 py-2 text-[12px] font-semibold text-white shadow-sm shadow-[#E8839A]/40 transition-colors hover:bg-[#7d3444] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <span className="text-[14px]">+</span>
@@ -570,20 +656,39 @@ export function PanelVentasView({
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-[#F3E3E7] bg-[#FFFBFD] px-3 py-2 text-[12px]"
+                  className="flex items-start justify-between gap-3 rounded-xl border border-[#F3E3E7] bg-[#FFFBFD] px-3 py-2 text-[12px]"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1 h-6 w-6 rounded-full border border-[#E0D0D4] bg-[#F5E5D5]" />
-                    <div>
-                      <p className="text-[13px] font-semibold text-[#251721]">
-                        {item.name}
-                      </p>
-                      <p className="text-[11px] text-[#A28C8F]">
-                        {item.color} · T.{item.size}
-                      </p>
-                      <p className="text-[11px] text-[#A28C8F]">
-                        {item.qty}x S/ {item.price.toFixed(2)}
-                      </p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-semibold text-[#251721]">
+                      {item.name}
+                    </p>
+                    <p className="text-[11px] text-[#A28C8F]">
+                      {item.color} · T.{item.size} · {item.qty} par
+                      {item.qty !== 1 ? "es" : ""}
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <label className="text-[10px] font-medium text-[#64748B]">
+                        Precio/par
+                      </label>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] text-[#64748B]">S/</span>
+                        <input
+                          type="number"
+                          min={0.01}
+                          step={0.01}
+                          defaultValue={item.price}
+                          key={`${item.id}-${item.price}`}
+                          onBlur={(e) =>
+                            handleUpdateItemPrice(item.id, e.target.value)
+                          }
+                          className="h-7 w-[84px] rounded-md border border-[#E2E8F0] bg-white px-1.5 text-right text-[12px] font-semibold text-[#0F172A] focus:border-[#984258] focus:outline-none"
+                        />
+                      </div>
+                      {item.listPrice > item.price ? (
+                        <span className="rounded-full bg-[#FFFBEB] px-1.5 py-0.5 text-[10px] font-medium text-[#B45309]">
+                          lista S/ {item.listPrice.toFixed(0)}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
@@ -640,7 +745,7 @@ export function PanelVentasView({
       {showSelector && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4 overflow-y-auto">
           <div className="relative flex h-[90vh] w-full max-w-5xl flex-col rounded-2xl bg-white p-3">
-            <div className="mb-2 flex items-center justify-between px-1">
+            <div className="mb-2 flex items-center justify-between gap-3 px-1">
               <h2 className="text-[14px] font-semibold text-[#251721]">
                 Seleccionar producto del inventario
               </h2>
@@ -653,9 +758,38 @@ export function PanelVentasView({
               </button>
             </div>
 
+            <div className="mb-2 flex gap-1 rounded-lg bg-[#FFF0F6] p-1">
+              {(
+                [
+                  { id: "botines" as const, label: "Botines" },
+                  { id: "sandalias" as const, label: "Sandalias" },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setSelectorSection(tab.id)}
+                  className={[
+                    "flex-1 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors border-0 cursor-pointer",
+                    selectorSection === tab.id
+                      ? "bg-[#984258] text-white"
+                      : "bg-transparent text-[#544245] hover:bg-white/70",
+                  ].join(" ")}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
             <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
               <CalzadoPanel
-                inventoryTitle="Inventario general"
+                key={selectorSection}
+                inventoryTitle={
+                  selectorSection === "sandalias"
+                    ? "Inventario sandalias"
+                    : "Inventario botines"
+                }
+                section={selectorSection}
                 onVenderProduct={handleSelectFromInventory}
               />
             </div>

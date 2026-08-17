@@ -1,11 +1,17 @@
 // import { Response } from './../../../features/gestion-botines/models/botinesInventory.model';
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { AddProductFormData, StockRow } from "../types";
+import type { AddProductFormData, InventorySection, StockRow } from "../types";
 import {
   getBotinesInventoryProducts,
+  invalidateBotinesInventoryCache,
   searchBotinesInventoryProduct,
 } from "@/features/gestion-botines/services/botines.service";
+import {
+  getSandaliasInventoryProducts,
+  invalidateSandaliasInventoryCache,
+  searchSandaliasInventoryProduct,
+} from "@/features/gestion-sandalias/services/sandalias.service";
 import {
   botinesSocket,
   getApiErrorMessage,
@@ -19,6 +25,8 @@ import type {
 export type UseCalzadoPanelArgs = {
   rows?: StockRow[];
   inventoryTitle: string;
+  /** botines | sandalias */
+  section?: InventorySection;
   onAddProduct?: (data: AddProductFormData) => void;
   onEditProduct?: (id: number, data: AddProductFormData) => void;
   onDeleteProduct?: (id: number) => void;
@@ -48,6 +56,7 @@ function toStockRow(product: GetAllBotinesInventoryResponse): StockRow {
 
 export function useCalzadoPanel({
   inventoryTitle,
+  section = "botines",
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
@@ -55,6 +64,8 @@ export function useCalzadoPanel({
 }: UseCalzadoPanelArgs) {
   const navigate = useNavigate();
   const canMutate = !!onAddProduct;
+  const isBotinesSection = section === "botines";
+  const isSandaliasSection = section === "sandalias";
 
   const [products, setProducts] = useState<GetAllBotinesInventoryResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -83,16 +94,32 @@ export function useCalzadoPanel({
 
       setLoading(true);
       try {
-        const data = trimmed.length >= 2
-          ? await searchBotinesInventoryProduct({
-              inputDescriptionSearch: trimmed,
-            })
-          : await getBotinesInventoryProducts();
+        let data: GetAllBotinesInventoryResponse[] = [];
+
+        if (isBotinesSection) {
+          data =
+            trimmed.length >= 2
+              ? await searchBotinesInventoryProduct({
+                  inputDescriptionSearch: trimmed,
+                })
+              : await getBotinesInventoryProducts();
+        } else if (isSandaliasSection) {
+          data =
+            trimmed.length >= 2
+              ? await searchSandaliasInventoryProduct({
+                  inputDescriptionSearch: trimmed,
+                })
+              : await getSandaliasInventoryProducts();
+        }
+
         if (cancelled) return;
         setProducts(data);
         setPage(1);
       } catch (error) {
-        if (!cancelled) console.error(getApiErrorMessage(error));
+        if (!cancelled) {
+          console.error(getApiErrorMessage(error));
+          setProducts([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -102,9 +129,11 @@ export function useCalzadoPanel({
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [searchTerm]);
+  }, [searchTerm, isBotinesSection, isSandaliasSection]);
 
   useEffect(() => {
+    if (!isBotinesSection && !isSandaliasSection) return;
+
     const handleStockUpdate = (updatedProduct: BotinesStockUpdate) => {
       setProducts((currentProducts) =>
         currentProducts.map((product) =>
@@ -129,7 +158,8 @@ export function useCalzadoPanel({
     };
 
     const handleCompraRealizada = async (payload: unknown) => {
-      const { productos: updatedProducts = [] } = (payload ?? {}) as CompraRealizadaPayload;
+      const { productos: updatedProducts = [] } = (payload ??
+        {}) as CompraRealizadaPayload;
       if (updatedProducts.length > 0) {
         setProducts((currentProducts) => {
           const byId = new Map(
@@ -173,8 +203,13 @@ export function useCalzadoPanel({
       if (hasNewProducts || updatedProducts.length === 0) {
         try {
           const term = searchTermRef.current.trim();
-          const data =
-            term.length >= 2
+          const data = isSandaliasSection
+            ? term.length >= 2
+              ? await searchSandaliasInventoryProduct({
+                  inputDescriptionSearch: term,
+                })
+              : await getSandaliasInventoryProducts()
+            : term.length >= 2
               ? await searchBotinesInventoryProduct({
                   inputDescriptionSearch: term,
                 })
@@ -194,7 +229,7 @@ export function useCalzadoPanel({
       botinesSocket.off("stock-update", handleStockUpdate);
       botinesSocket.off("compra-realizada", handleCompraRealizada);
     };
-  }, []);
+  }, [isBotinesSection, isSandaliasSection]);
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
@@ -209,9 +244,25 @@ export function useCalzadoPanel({
     setModalMode(null);
   };
 
-  const handleProductCreated = () => {
+  const handleProductCreated = async () => {
     setSearchTerm("");
     setPage(1);
+    setLoading(true);
+    try {
+      if (isSandaliasSection) {
+        invalidateSandaliasInventoryCache();
+        const data = await getSandaliasInventoryProducts();
+        setProducts(data);
+      } else {
+        invalidateBotinesInventoryCache();
+        const data = await getBotinesInventoryProducts();
+        setProducts(data);
+      }
+    } catch (error) {
+      console.error(getApiErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteConfirm = (id: number) => {
@@ -254,6 +305,7 @@ export function useCalzadoPanel({
 
   return {
     displayTitle: inventoryTitle,
+    section,
     canMutate,
     products,
     paginatedProducts,

@@ -10,9 +10,9 @@ import type {
   GroupedStockDetails,
   SaleStockVariant,
 } from "@/features/gestion-botines/models/botinesInventory.model";
-import {
-  consultaDatosModelosTallasApi,
-} from "@/features/gestion-botines/services/botines.service";
+import { isSandaliaInventoryProduct } from "@/features/gestion-botines/models/botinesInventory.model";
+import { consultaDatosModelosTallasApi } from "@/features/gestion-botines/services/botines.service";
+import { consultaDatosModelosTallasSandaliasApi } from "@/features/gestion-sandalias/services/sandalias.service";
 
 export type GestionVentasLocationState = {
   product?: GetAllBotinesInventoryResponse;
@@ -23,20 +23,28 @@ export function useGestionVentasPage() {
   const product = (location.state as GestionVentasLocationState)?.product ?? null;
   const [loadingStock, setLoadingStock] = useState(false);
 
-  const [groupedStockDetails, setGroupedStockDetails] = useState<GroupedStockDetails>({});
+  const [groupedStockDetails, setGroupedStockDetails] =
+    useState<GroupedStockDetails>({});
   const [selectedColorId, setSelectedColorId] = useState<number | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
 
   const loadProductStock = useCallback(
-    async (selectedProduct: GetAllBotinesInventoryResponse): Promise<boolean> => {
+    async (
+      selectedProduct: GetAllBotinesInventoryResponse,
+    ): Promise<boolean> => {
       setLoadingStock(true);
       try {
-        const response = await consultaDatosModelosTallasApi({
+        const params = {
           id: selectedProduct.id_producto,
           modelo: selectedProduct.nombreModelo,
-        });
-        const fetchedStockDetails = (response.DetalleModeloStock ?? [])
-          .map<SaleStockVariant>((item) => item);
+        };
+        const response = isSandaliaInventoryProduct(selectedProduct)
+          ? await consultaDatosModelosTallasSandaliasApi(params)
+          : await consultaDatosModelosTallasApi(params);
+
+        const fetchedStockDetails = (response.DetalleModeloStock ?? []).map<
+          SaleStockVariant
+        >((item) => item);
 
         const newGroupedStock: GroupedStockDetails = fetchedStockDetails.reduce(
           (acc: GroupedStockDetails, item: SaleStockVariant) => {
@@ -74,7 +82,10 @@ export function useGestionVentasPage() {
         }
         return true;
       } catch (error) {
-        console.error("Error fetching stock details:", getApiErrorMessage(error));
+        console.error(
+          "Error fetching stock details:",
+          getApiErrorMessage(error),
+        );
         return false;
       } finally {
         setLoadingStock(false);

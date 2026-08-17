@@ -12,6 +12,9 @@ type InventoryManagementLayoutViewProps = InventoryManagementLayoutLogic & {
   rows: StockRow[];
   children?: ReactNode;
   noFooter?: boolean;
+  /** Si true, el contenido principal hace scroll vertical (p. ej. dashboard). */
+  contentScrollable?: boolean;
+  compactTitle?: boolean;
 };
 
 export function InventoryManagementLayoutView({
@@ -19,6 +22,8 @@ export function InventoryManagementLayoutView({
   rows,
   children,
   noFooter = true,
+  contentScrollable = false,
+  compactTitle = false,
   sidebarOpen,
   toggleSidebar,
 }: InventoryManagementLayoutViewProps) {
@@ -43,9 +48,23 @@ export function InventoryManagementLayoutView({
           >
             {sidebarOpen ? <PanelLeftClose size={20} /> : <Menu size={20} />}
           </button>
-          <span className="text-[18px] font-semibold tracking-tight text-[#984258]">
-            Calzados Millas
-          </span>
+          <Link
+            to={ROUTES.home}
+            className="panel-brand"
+            aria-label="Milas Calzados — inicio"
+          >
+            <span className="panel-brand__mark" aria-hidden="true">
+              <img
+                src="/images/logo-milas.png"
+                alt=""
+                className="panel-brand__logo"
+              />
+            </span>
+            <span className="panel-brand__text">
+              <span className="panel-brand__name">Milas</span>
+              <span className="panel-brand__tag">Calzados</span>
+            </span>
+          </Link>
         </div>
         <div className="flex-1 max-w-xl mx-4 md:mx-8 hidden sm:block">
           <div className="relative group">
@@ -115,16 +134,30 @@ export function InventoryManagementLayoutView({
             sidebarOpen ? "ml-56" : "ml-0"
           }`}
         >
-          <div className="mb-2 shrink-0">
-            <h1 className="text-[20px] font-bold text-[#251721] tracking-tight md:text-[22px]">
-              {title}
-            </h1>
+          {title ? (
+            <div className="mb-2 shrink-0">
+              <h1
+                className={
+                  compactTitle
+                    ? "m-0 font-[Montserrat,Inter,system-ui,sans-serif] text-[12px] font-normal tracking-normal text-[#94A3B8]"
+                    : "text-[20px] font-bold tracking-tight text-[#251721] md:text-[22px]"
+                }
+              >
+                {title}
+              </h1>
+            </div>
+          ) : null}
+          <div
+            className={`flex min-h-0 flex-1 flex-col ${
+              contentScrollable ? "overflow-y-auto" : "overflow-hidden"
+            }`}
+          >
+            {children}
           </div>
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
           {!noFooter && (
             <footer className="w-full shrink-0 py-3 flex justify-between items-center text-[#544245] text-[11px]">
               <div>
-                <span className="font-bold text-[#984258] mr-2">Calzados Millas</span>
+                <span className="font-bold text-[#984258] mr-2">Milas Calzados</span>
                 <span>&copy; 2024. Todos los derechos reservados.</span>
               </div>
             </footer>

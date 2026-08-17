@@ -1,5 +1,7 @@
 export type GetAllBotinesInventoryResponse = {
   id_producto: number;
+  /** 1 = BOTINES, 2 = SANDALIAS (cuando el API lo envía). */
+  idTipoCalzado?: number;
   idModelo: number;
   descripcionModelo: string;
   nombreModelo: string;
@@ -18,6 +20,14 @@ export type GetAllBotinesInventoryResponse = {
   fecha_actualizacion: string;
   imagen?: string | null;
 };
+
+/** True si el producto pertenece a sandalias. */
+export function isSandaliaInventoryProduct(
+  product: Pick<GetAllBotinesInventoryResponse, "idTipoCalzado" | "sku">,
+): boolean {
+  if (product.idTipoCalzado === 2) return true;
+  return Boolean(product.sku?.toUpperCase().startsWith("S-"));
+}
 
 export type BotinColorApi = {
   id_color: number;
@@ -60,6 +70,9 @@ export type CrearBotinProductoRequest = {
   precioCompraPar: number;
   precioVentaPar: number;
   cantidadLotes: number;
+  observacion?: string;
+  /** UUID del usuario autenticado (`users.id`). */
+  usuarioId?: string;
   detalleTallas: {
     idTalla: number;
     cantidad: number;

@@ -62,7 +62,7 @@ export function useIniciarSesionPage() {
 
   const handleGoToDashboard = () => {
     setShowAdminModal(false);
-    navigate(ROUTES.gestionBotines);
+    navigate(ROUTES.dashboard);
   };
 
   return {

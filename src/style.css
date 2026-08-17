@@ -1015,6 +1015,93 @@ button.rounded-full { border-radius: 9999px; }
   color: inherit;
 }
 
+/* Marca en header: logo + tipografía (script Milas / sans Calzados) */
+.panel-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  text-decoration: none !important;
+  color: inherit;
+  transition: opacity 0.2s ease;
+}
+
+.panel-brand:hover {
+  opacity: 0.92;
+}
+
+.panel-brand__mark {
+  display: grid;
+  place-items: center;
+  width: 2.55rem;
+  height: 2.55rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 9999px;
+  border: 1px solid #e8d5d9;
+  background: #fce0e5;
+  box-shadow: 0 2px 10px rgba(152, 66, 88, 0.1);
+}
+
+.panel-brand__logo {
+  width: 118%;
+  height: 118%;
+  object-fit: cover;
+  object-position: center 42%;
+}
+
+.panel-brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  min-width: 0;
+}
+
+.panel-brand__name {
+  font-family: "Dancing Script", "Segoe Script", cursive;
+  font-weight: 700;
+  font-size: 1.45rem;
+  letter-spacing: 0.01em;
+  color: #1a1215;
+}
+
+.panel-brand__tag {
+  margin-top: 0.12rem;
+  font-family: "Montserrat", "Poppins", sans-serif;
+  font-weight: 600;
+  font-size: 0.62rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #984258;
+}
+
+@media (max-width: 640px) {
+  .panel-brand__name {
+    font-size: 1.25rem;
+  }
+
+  .panel-brand__tag {
+    font-size: 0.55rem;
+    letter-spacing: 0.22em;
+  }
+
+  .panel-brand__mark {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+}
+
+/* Sidebar panel: Bootstrap no debe subrayar ni pintar azul los módulos */
+.panel-sidebar-link,
+.panel-sidebar-link:link,
+.panel-sidebar-link:visited,
+.panel-sidebar-link:hover,
+.panel-sidebar-link:active,
+.panel-sidebar-link:focus {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
 .panel-header-btn {
   display: inline-flex;
   align-items: center;
@@ -1142,3 +1229,73 @@ button.rounded-full { border-radius: 9999px; }
 .panel-user-chip__logout:active {
   transform: scale(0.94);
 }
+
+/* ═════════════════════════════════════════════════════
+   Botones pastel flat (pill) — ver skill milla-botones-pastel
+   ═════════════════════════════════════════════════════ */
+
+.btn-pastel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 1.85rem;
+  padding: 0 0.85rem;
+  border-radius: 9999px;
+  border: 1px solid;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  background: transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.btn-pastel:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn-pastel--save {
+  background: #eef9f7;
+  border-color: #5aaea5;
+  color: #2f7a73;
+}
+
+.btn-pastel--save:hover:not(:disabled) {
+  background: #e2f4f1;
+}
+
+.btn-pastel--cancel {
+  background: #f7f6f7;
+  border-color: #d4cfd1;
+  color: #7a6f72;
+}
+
+.btn-pastel--cancel:hover:not(:disabled) {
+  background: #f0eef0;
+}
+
+.btn-pastel--brand {
+  background: #fff0f5;
+  border-color: #984258;
+  color: #984258;
+}
+
+.btn-pastel--brand:hover:not(:disabled) {
+  background: #fce4ec;
+}
+
+.btn-pastel--danger {
+  background: #fef2f2;
+  border-color: #b91c1c;
+  color: #b91c1c;
+}
+
+.btn-pastel--danger:hover:not(:disabled) {
+  background: #fee2e2;
+}
+

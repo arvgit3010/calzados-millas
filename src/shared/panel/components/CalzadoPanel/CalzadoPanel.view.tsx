@@ -35,6 +35,7 @@ const headerAlignClass = {
 
 export function CalzadoPanelView({
   displayTitle,
+  section = "botines",
   canMutate,
   products,
   paginatedProducts,
@@ -368,6 +369,7 @@ export function CalzadoPanelView({
       {modalMode !== null ? (
         <AddProductModal
           open
+          section={section}
           onClose={() => setModalMode(null)}
           onSubmit={handleAddSubmit}
           onCreated={handleProductCreated}

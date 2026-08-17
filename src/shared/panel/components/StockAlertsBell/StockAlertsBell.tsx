@@ -2,23 +2,34 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { Bell } from "lucide-react";
 import { useStockAlerts } from "../../hooks/useStockAlerts";
 import type { StockRow } from "../../types";
+import type { DashboardAlertaStock } from "@/features/dashboard/models/dashboard.model";
 
 type Props = {
-  rows: StockRow[];
+  /** Compat: ya no se usa; las alertas vienen de la API. */
+  rows?: StockRow[];
 };
 
-/** Ícono de campana con badge de alertas de stock.
- *  Al hacer clic despliega un popover con todas las alertas. */
-export function StockAlertsBell({ rows }: Props) {
-  const { alerts, totalCount, highestSeverity } = useStockAlerts(rows);
+function nivelLabel(nivel: DashboardAlertaStock["nivel"]) {
+  if (nivel === "agotado") return "Agotado";
+  if (nivel === "critico") return "Crítico";
+  return "Bajo";
+}
+
+function nivelBadgeClass(nivel: DashboardAlertaStock["nivel"]) {
+  if (nivel === "agotado") return "bg-[#EF4444]";
+  if (nivel === "critico") return "bg-[#EA580C]";
+  return "bg-[#EAB308]";
+}
+
+/** Ícono de campana con badge de alertas de stock bajo (API + WebSocket). */
+export function StockAlertsBell({ rows: _rows }: Props) {
+  const { alerts, totalCount, highestSeverity, loading } = useStockAlerts();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const toggle = useCallback(() => setIsOpen((prev) => !prev), []);
-
   const close = useCallback(() => setIsOpen(false), []);
 
-  // Cerrar al hacer clic fuera
   useEffect(() => {
     if (!isOpen) return;
     const handleClick = (e: MouseEvent) => {
@@ -30,7 +41,6 @@ export function StockAlertsBell({ rows }: Props) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [isOpen, close]);
 
-  // Cerrar con Escape
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -41,7 +51,7 @@ export function StockAlertsBell({ rows }: Props) {
   }, [isOpen, close]);
 
   const badgeColor =
-    highestSeverity === "critico"
+    highestSeverity === "agotado" || highestSeverity === "critico"
       ? "bg-[#EF4444]"
       : highestSeverity === "bajo"
         ? "bg-[#EAB308]"
@@ -50,15 +60,16 @@ export function StockAlertsBell({ rows }: Props) {
   return (
     <div className="relative" ref={containerRef}>
       <button
+        type="button"
         onClick={toggle}
-        className="p-2 text-[#544245] hover:text-[#984258] hover:bg-[#F5DCE9]/50 rounded-lg transition-all relative"
+        className="relative rounded-lg p-2 text-[#544245] transition-all hover:bg-[#F5DCE9]/50 hover:text-[#984258]"
         aria-label="Alertas de stock"
         aria-expanded={isOpen}
       >
         <Bell size={20} />
         {totalCount > 0 && (
           <span
-            className={`absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold text-white px-1 leading-none ${badgeColor}`}
+            className={`absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white ${badgeColor}`}
           >
             {totalCount > 9 ? "9+" : totalCount}
           </span>
@@ -67,35 +78,58 @@ export function StockAlertsBell({ rows }: Props) {
 
       {isOpen && (
         <div
-          className="absolute right-0 top-full mt-2 w-80 z-50 bg-[#FFF7F9] border border-[#E5E7EB] rounded-2xl shadow-lg overflow-hidden"
+          className="absolute top-full right-0 z-50 mt-2 w-[22rem] overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#FFF7F9] shadow-lg"
           role="menu"
         >
-          <div className="px-4 py-3 border-b border-[#E5E7EB]">
+          <div className="border-b border-[#E5E7EB] px-4 py-3">
             <p className="text-[13px] font-bold text-[#251721]">
-              Alertas de stock ({totalCount})
+              Stock bajo ({totalCount})
+            </p>
+            <p className="text-[11px] text-[#867275]">
+              Productos con 3 pares o menos
             </p>
           </div>
 
-          {alerts.length === 0 ? (
+          {loading && alerts.length === 0 ? (
+            <div className="px-4 py-8 text-center text-[13px] text-[#867275]">
+              Cargando alertas…
+            </div>
+          ) : alerts.length === 0 ? (
             <div className="px-4 py-8 text-center text-[13px] text-[#867275]">
               No hay alertas de stock
             </div>
           ) : (
-            <div className="max-h-[320px] overflow-y-auto custom-scrollbar p-3 space-y-2">
-              {alerts.map(({ row, lowSizes }) => (
-                <div key={row.id} className="bg-white border border-[#E5E7EB] rounded-xl p-3">
-                  <p className="text-[13px] font-semibold text-[#251721] leading-tight">{row.model}</p>
-                  <p className="text-[11px] text-[#867275] mb-1.5">Color: {row.color}</p>
-                  {lowSizes.map((size) => (
-                    <div key={`${row.id}-${size.size}`} className="flex items-center justify-between gap-2">
-                      <span className="text-[12px] text-[#544245]">Talla {size.size}</span>
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full text-white ${
-                        size.qty <= 2 ? "bg-[#EF4444]" : "bg-[#EAB308]"
-                      }`}>
-                        {size.qty} pares
-                      </span>
+            <div className="custom-scrollbar max-h-[360px] space-y-2 overflow-y-auto p-3">
+              {alerts.map((a) => (
+                <div
+                  key={a.idProducto}
+                  className="rounded-xl border border-[#E5E7EB] bg-white p-3"
+                >
+                  <div className="mb-1 flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-semibold leading-tight text-[#251721]">
+                        {a.modelo || a.sku}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-[#867275]">
+                        {a.codigoTipo === "SANDALIAS" ? "Sandalias" : "Botines"}
+                        {a.color && a.color !== "-" ? ` · ${a.color}` : ""}
+                        {a.talla && a.talla !== "-" ? ` · Talla ${a.talla}` : ""}
+                      </p>
                     </div>
-                  ))}
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold text-white ${nivelBadgeClass(a.nivel)}`}
+                    >
+                      {nivelLabel(a.nivel)}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#544245]">
+                    <span className="truncate font-mono text-[#64748B]">
+                      SKU {a.sku}
+                    </span>
+                    <span className="font-bold text-[#0F172A]">
+                      {a.stockActual} {a.stockActual === 1 ? "par" : "pares"}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
